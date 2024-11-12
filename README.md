@@ -1,2 +1,2 @@
-# saddle
+# stirrup
 eCVT Control System
