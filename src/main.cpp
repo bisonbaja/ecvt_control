@@ -1,6 +1,7 @@
 // Main file for Baja CVT Controller
-// Program name stirrup 
+// Program name: eCVT Control
 // Christian Wilson 11/8/24
+// Last major update 1/28/25
 
 /* DONE:
  - stepper control
