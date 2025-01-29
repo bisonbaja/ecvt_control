@@ -107,6 +107,7 @@ void setup() {
     pinMode(READY_LED, OUTPUT);
     pinMode(ERROR_LED, OUTPUT);
 
+    // Generate filename
     char filename[32] = "cvt_data.csv";
     unsigned int file_index = 0;
     while (SD.exists(filename)) {
