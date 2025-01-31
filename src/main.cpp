@@ -74,6 +74,7 @@ File log_file;
 unsigned long lines_written = 0;
 unsigned long last_flush = 0;
 
+// Compute RPM values, calculate ratios, error, and new target position
 void updatePID() {
     e_rpm_m = (60.0/1000000.0)/e_last_delta;
     s_rpm_m = (60.0/1000000.0)/s_last_delta;
@@ -85,7 +86,7 @@ void updatePID() {
     error_deriv = (error-last_error)/delta_t;
     error_integ += error*delta_t;
 
-    target_pos_inch = 0.75 - (Ka / (r_t +1)) + Kp*error + Ki*error_integ + Kd*error_deriv;
+    target_pos_inch = /*(Ka / (r_t +1)) +*/ Kp*error + Ki*error_integ + Kd*error_deriv;
 }
 
 void fail() {
@@ -106,6 +107,7 @@ void setup() {
     // Init lights
     pinMode(READY_LED, OUTPUT);
     pinMode(ERROR_LED, OUTPUT);
+    digitalWrite(ERROR_LED, HIGH);
 
     // Generate filename
     char filename[32] = "cvt_data.csv";
@@ -124,6 +126,8 @@ void setup() {
     // Initialize stepper for accel control
     stepper.setMaxSpeed(1*steps_per_linch);
     stepper.setAcceleration(2000);
+    
+    digitalWrite(READY_LED, HIGH);
 }
 
 void loop() {
