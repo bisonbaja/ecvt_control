@@ -25,6 +25,7 @@
 volatile unsigned long e_new_pulse = 0;
 volatile unsigned long e_last_pulse = 0;
 volatile unsigned long e_last_delta = 0;
+
 volatile unsigned long s_new_pulse = 0;
 volatile unsigned long s_last_pulse = 0;
 volatile unsigned long s_last_delta = 0;
