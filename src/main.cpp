@@ -51,12 +51,15 @@ AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN); // Defaults to Ac
 
 // Tuning Parameters:
 const double e_rpm_t = 3000;
-const double Ka = 1;
+
 const double Kp = 0.25;
 const double Ki = 0.01;
 const double Kd = 0.25;
 
 const unsigned int steps_per_linch = 800; // 4 rev/in * 200 step/rev 
+
+const double model_r[] = {0.9,    1,     1.1,    1.2,    1.3,    1.4,    1.5,    1.6,   1.7,    1.8,    1.9,    2,      2.1,    2.2,    2.3,    2.4,    2.5,    2.6,    2.7,    2.8,    2.9,    3,      3.1,    3.2,    3.3,    3.4,    3.5,    3.6,    3.7,    3.8,    3.9};
+const double model_P[] = {2.6793, 2.5465,2.4243, 2.3119, 2.2083, 2.1126, 2.0242, 1.9423,1.8662,	1.7956,	1.7298,	1.6683,	1.6109,	1.5571,	1.5067,	1.4593,	1.4146,	1.3726,	1.3329,	1.2953,	1.2598,	1.2261,	1.1941,	1.1637,	1.1348,	1.1073,	1.081,	1.056,	1.032,	1.0091,	0.98719};
 
 double error;
 double last_error;
@@ -86,8 +89,8 @@ void updatePID() {
     error = r_t - r_m;
     error_deriv = (error-last_error)/delta_t;
     error_integ += error*delta_t;
-
-    target_pos_inch = /*(Ka / (r_t +1)) +*/ Kp*error + Ki*error_integ + Kd*error_deriv;
+    // TO DO: NEED TO SET LIMITS ON POSITION
+    target_pos_inch = Kp*error + Ki*error_integ + Kd*error_deriv;
 }
 
 void fail() {
