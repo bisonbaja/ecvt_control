@@ -25,6 +25,42 @@
 #define ERROR_LED 9
 //#define STEPPER_ENABLE
 
+// Tuning Parameters:
+const double e_rpm_t = 3000;
+const double e_rpm_const = 60000000.0/ENGINE_NUM_MAGS;
+const double s_rpm_const = 60000000.0/SECONDARY_NUM_MAGS;
+const unsigned int steps_per_linch = 800; // 4 rev/in * 200 step/rev 
+const double Kp = 0.25;
+const double Ki = 0.01;
+const double Kd = 0.25;
+const double max_pos_inch = 0.925;
+unsigned long delta_t = 100; // millis -> 100Hz 
+
+#ifdef STEPPER_ENABLE
+// Define a stepper and the pins it will use
+AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN); // Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5
+#endif
+
+const double model_r[] = {0.9,    1,     1.1,    1.2,    1.3,    1.4,    1.5,    1.6,   1.7,    1.8,    1.9,    2,      2.1,    2.2,    2.3,    2.4,    2.5,    2.6,    2.7,    2.8,    2.9,    3,      3.1,    3.2,    3.3,    3.4,    3.5,    3.6,    3.7,    3.8,    3.9};
+const double model_P[] = {2.6793, 2.5465,2.4243, 2.3119, 2.2083, 2.1126, 2.0242, 1.9423,1.8662,	1.7956,	1.7298,	1.6683,	1.6109,	1.5571,	1.5067,	1.4593,	1.4146,	1.3726,	1.3329,	1.2953,	1.2598,	1.2261,	1.1941,	1.1637,	1.1348,	1.1073,	1.081,	1.056,	1.032,	1.0091,	0.98719};
+
+double error;
+double last_error;
+double error_deriv;
+double error_integ;
+double e_rpm_m = 0;
+double s_rpm_m = 0;
+double r_t = 3.9;
+double r_m = 3.9;
+double target_pos_inch = 0;
+
+unsigned long start_time;
+unsigned long last_time;
+
+File log_file;
+unsigned long lines_written = 0;
+unsigned long last_flush = 0;
+
 volatile unsigned long e_new_pulse = 0;
 volatile unsigned long e_last_pulse = 0;
 volatile unsigned long e_last_delta = 0;
@@ -73,47 +109,6 @@ double s_avg_delta() {
     return ret_val/SECONDARY_NUM_MAGS;
 }
 
-#ifdef STEPPER_ENABLE
-// Define a stepper and the pins it will use
-AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN); // Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5
-#endif
-
-// Control EQN:
-// P = Kp E + Kd dE/dt + Ki integ(E)
-// Exlicit term, proportional, derivative, integral
-
-// Tuning Parameters:
-const double e_rpm_t = 3000;
-const double e_rpm_const = 60000000.0/ENGINE_NUM_MAGS;
-const double s_rpm_const = 60000000.0/SECONDARY_NUM_MAGS;
-
-const double Kp = 0.25;
-const double Ki = 0.01;
-const double Kd = 0.25;
-
-const unsigned int steps_per_linch = 800; // 4 rev/in * 200 step/rev 
-
-const double model_r[] = {0.9,    1,     1.1,    1.2,    1.3,    1.4,    1.5,    1.6,   1.7,    1.8,    1.9,    2,      2.1,    2.2,    2.3,    2.4,    2.5,    2.6,    2.7,    2.8,    2.9,    3,      3.1,    3.2,    3.3,    3.4,    3.5,    3.6,    3.7,    3.8,    3.9};
-const double model_P[] = {2.6793, 2.5465,2.4243, 2.3119, 2.2083, 2.1126, 2.0242, 1.9423,1.8662,	1.7956,	1.7298,	1.6683,	1.6109,	1.5571,	1.5067,	1.4593,	1.4146,	1.3726,	1.3329,	1.2953,	1.2598,	1.2261,	1.1941,	1.1637,	1.1348,	1.1073,	1.081,	1.056,	1.032,	1.0091,	0.98719};
-
-double error;
-double last_error;
-double error_deriv;
-double error_integ;
-double e_rpm_m = 0;
-double s_rpm_m = 0;
-double r_t = 3.9;
-double r_m = 3.9;
-double target_pos_inch = 0;
-const double max_pos_inch = 0.925;
-unsigned long start_time;
-unsigned long last_time;
-unsigned long delta_t = 100; // millis -> 100Hz 
-
-File log_file;
-unsigned long lines_written = 0;
-unsigned long last_flush = 0;
-
 // Compute RPM values, calculate ratios, error, and new target position
 void updatePID() {
     e_rpm_m = e_rpm_const/e_avg_delta();
@@ -122,8 +117,6 @@ void updatePID() {
     if (s_rpm_m < 0 or s_rpm_m > 5000) s_rpm_m = 100;
     r_m = e_rpm_m / s_rpm_m;
     r_t = e_rpm_t / s_rpm_m;
-
-    
 
     last_error = error;
     error = r_t - r_m;
