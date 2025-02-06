@@ -16,8 +16,8 @@
 #include <AccelStepper.h>
 #define ENGINE_TACH_PIN     4
 #define SECONDARY_TACH_PIN  5
-#define ENGINE_NUM_MAGS 2
-#define SECONDARY_NUM_MAGS 2
+#define ENGINE_NUM_MAGS 4
+#define SECONDARY_NUM_MAGS 4
 
 #define STEP_PIN 6
 #define DIR_PIN 7
@@ -108,7 +108,7 @@ double target_pos_inch = 0;
 const double max_pos_inch = 0.925;
 unsigned long start_time;
 unsigned long last_time;
-unsigned long delta_t = 1000; // millis -> 100Hz 
+unsigned long delta_t = 100; // millis -> 100Hz 
 
 File log_file;
 unsigned long lines_written = 0;
@@ -216,7 +216,7 @@ void loop() {
             #endif
             );
         //Serial.println(new_line);
-        Serial.println(e_rpm_m);
+        Serial.println(new_line);
         log_file.println(new_line);
         lines_written++;
         if (lines_written - last_flush > 500) {
