@@ -167,7 +167,7 @@ void setup() {
     while (SD.exists(filename)) {
         file_index++;
         sprintf(filename, "cvt_data_%u.csv", file_index);
-        if (file_index > 100) fail();
+        if (file_index > 1000) fail();
     }
     Serial.println(filename);
     
@@ -201,12 +201,18 @@ void loop() {
         // LOG FORMAT
         // time (ms), eRPM, sRPM, r_t, r_m, target_pos, curr_pos
         char new_line[256];
-        sprintf(new_line, "%Lu, %.0Lf, %.0Lf, %.4Lf, %.4Lf, %.4Lf, %.4Lf", 
-            last_time, e_rpm_m, s_rpm_m, r_t, r_m, target_pos_inch, 
+        
+        sprintf(new_line, "%u, %d.%02d, %d.%02d, %d.%02d, %d.%02d, %d.%02d, %d.%02d", 
+            last_time, 
+            int(e_rpm_m), (int)(e_rpm_m*100)%100,
+            int(s_rpm_m), (int)(s_rpm_m*100)%100,
+            int(r_t), (int)(r_t*100)%100,
+            int(r_m), (int)(r_m*100)%100,
+            int(target_pos_inch), (int)(target_pos_inch*100)%100,
             #ifdef STEPPER_ENABLE
             (stepper.currentPosition()/double(steps_per_linch) )
             #else
-            0
+            0,0
             #endif
             );
         //Serial.println(new_line);
