@@ -60,6 +60,7 @@ unsigned long last_time;
 File log_file;
 unsigned long lines_written = 0;
 unsigned long last_flush = 0;
+char new_line[256];
 
 volatile unsigned long e_new_pulse = 0;
 volatile unsigned long e_last_pulse = 0;
@@ -73,7 +74,7 @@ volatile unsigned long s_last_delta = 0;
 volatile unsigned long s_deltas[SECONDARY_NUM_MAGS];
 volatile unsigned short s_delta_i = 0;
 
-void e_isr() {
+void e_isr() { // 4 micros
     e_new_pulse = micros();
     e_last_delta = e_new_pulse - e_last_pulse;
     e_last_pulse = e_new_pulse;
@@ -110,7 +111,7 @@ double s_avg_delta() {
 }
 
 // Compute RPM values, calculate ratios, error, and new target position
-void updatePID() {
+void updatePID() { // ~200 micros
     e_rpm_m = e_rpm_const/e_avg_delta();
     s_rpm_m = s_rpm_const/s_avg_delta();
     if (e_rpm_m < 0 or e_rpm_m > 5000) e_rpm_m = 100;
@@ -163,9 +164,7 @@ void setup() {
         if (file_index > 1000) fail();
     }
     Serial.println(filename);
-    
     log_file = SD.open(filename, FILE_WRITE);
-    
 
     // Mark start time
     start_time = millis();
@@ -176,14 +175,16 @@ void setup() {
     stepper.setMaxSpeed(1*steps_per_linch);
     stepper.setAcceleration(2000);
     #endif
-    
+    delay(1000);
+    log_file.println("time (ms), eRPM, sRPM, r_t, r_m, target_pos, curr_pos");
+
     digitalWrite(READY_LED, HIGH);
     digitalWrite(ERROR_LED, LOW);
 }
 
 void loop() {
     // Check if enough time has passed to recompute target position
-    if (millis() - last_time >= delta_t) {
+    if (millis() - last_time >= delta_t) { // this routine takes around 3000 micros
         last_time += delta_t;
         updatePID();
 
@@ -193,23 +194,23 @@ void loop() {
 
         // LOG FORMAT
         // time (ms), eRPM, sRPM, r_t, r_m, target_pos, curr_pos
-        char new_line[256];
         
-        sprintf(new_line, "%u, %d.%02d, %d.%02d, %d.%02d, %d.%02d, %d.%02d, %d.%02d", 
+        sprintf(new_line, "%u, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f", 
             last_time, 
-            int(e_rpm_m), (int)(e_rpm_m*100)%100,
-            int(s_rpm_m), (int)(s_rpm_m*100)%100,
-            int(r_t), (int)(r_t*100)%100,
-            int(r_m), (int)(r_m*100)%100,
-            int(target_pos_inch), (int)(target_pos_inch*100)%100,
+            e_rpm_m,
+            s_rpm_m,
+            r_t,
+            r_m,
+            target_pos_inch,
             #ifdef STEPPER_ENABLE
             (stepper.currentPosition()/double(steps_per_linch) )
             #else
-            0,0
+            0
             #endif
             );
-        //Serial.println(new_line);
-        Serial.println(new_line);
+        char serial_line[256];
+        sprintf(serial_line, ">Engine RPM:%.3f\n>Secondary RPM:%.3f\n>Ratio:%.3f", e_rpm_m, s_rpm_m, r_m);
+        Serial.println(serial_line);
         log_file.println(new_line);
         lines_written++;
         if (lines_written - last_flush > 500) {
