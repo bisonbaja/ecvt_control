@@ -12,6 +12,6 @@ for i = 1:length(R)
   r(i) = r_sol(R(i), c, L);
 end
 
-r_eng = 0.175;
+r_eng = 0.987-0.175;
 P=2*(r - r_eng)*tan( (belt_angle/2) * pi/180);
 plot(R, P);
