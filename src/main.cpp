@@ -16,10 +16,10 @@
 #include <AccelStepper.h>
 #define ENGINE_TACH_PIN     4
 #define SECONDARY_TACH_PIN  5
-#define ENGINE_NUM_MAGS 0.2
-#define SECONDARY_NUM_MAGS 2
-#define ENGINE_AVG 8
-#define SECONDARY_AVG 8
+#define ENGINE_NUM_MAGS 1
+#define SECONDARY_NUM_MAGS 1
+#define ENGINE_AVG 4
+#define SECONDARY_AVG 4
 #define FAKE_DEF_RPM 2000
 
 #define STEP_PIN 6
@@ -33,11 +33,14 @@ const double e_rpm_t = 3000;
 const double e_rpm_const = 60000000.0/ENGINE_NUM_MAGS;
 const double s_rpm_const = 60000000.0/SECONDARY_NUM_MAGS;
 const unsigned int steps_per_linch = 800; // 4 rev/in * 200 step/rev 
-const double Kp = -0.01;
-const double Ki = -0.001;
-const double Kd = -0.25;
+const double Kp = -0.25;
+const double Ki = -0.5;
+const double Kd = -0.02;
 const double max_pos_inch = (0.925*2);
-unsigned long delta_t = 50; // millis -> 100Hz 
+const unsigned long delta_t = 20; // millis -> 100Hz 
+const double dt = delta_t*0.001; // in seconds for PID
+const unsigned long log_delay = 200;
+unsigned long log_last_time;
 
 #ifdef STEPPER_ENABLE
 // Define a stepper and the pins it will use
@@ -53,7 +56,7 @@ double error;
 double last_error;
 double error_deriv;
 double error_integ;
-double max_error_integ = abs(max_pos_inch/(Ki))/4;
+double max_error_integ = abs(max_pos_inch/(Ki))/2;
 double min_error_integ = -max_error_integ;
 double e_rpm_m = 0;
 double s_rpm_m = 0;
@@ -142,11 +145,11 @@ void updatePID() { // ~200 micros
 
     last_error = error;
     error = r_t - r_m;
-    error_deriv = (error-last_error)/delta_t;
-    error_integ += error*delta_t;
+    error_deriv = (error-last_error)/dt;
+    error_integ += error*dt;
     if (error_integ > max_error_integ) error_integ = max_error_integ;
     if (error_integ < min_error_integ) error_integ = min_error_integ;
-    target_pos_inch = interpolate(r_t, model_r, model_P) + Kp*error + Ki*error_integ + Kd*error_deriv;
+    target_pos_inch = 0.5*max_pos_inch + Kp*error + Ki*error_integ + Kd*error_deriv;
     if (target_pos_inch < 0) target_pos_inch = 0;
     if (target_pos_inch > max_pos_inch) target_pos_inch = max_pos_inch;
 }
@@ -193,6 +196,7 @@ void setup() {
     // Mark start time
     start_time = millis();
     last_time = start_time;
+    log_last_time = start_time + 5;
 
     #ifdef STEPPER_ENABLE
     // Initialize stepper for accel control
@@ -215,7 +219,10 @@ void loop() {
         #ifdef STEPPER_ENABLE
         stepper.moveTo(target_pos_inch*steps_per_linch);
         #endif
+    }
 
+    if (millis() - log_last_time >= log_delay) {
+        log_last_time = log_last_time + log_delay;
         // LOG FORMAT
         // time (ms), eRPM, sRPM, r_t, r_m, target_pos, curr_pos
         
@@ -234,8 +241,8 @@ void loop() {
             );
         char serial_line[256];
         double pos_actual = (stepper.currentPosition()/double(steps_per_linch) );
-        sprintf(serial_line, ">Engine RPM:%.2f\n>Secondary RPM:%.2f\n>Ratio:%.2f\n>Target Ratio:%.2f\n>Stepper Position:%.2f\n>Stepper Target:%.2f\n>Error:%.2f\n>Error Integ:%.2f\n>Dist to go:%.2f", 
-            e_rpm_m, s_rpm_m, r_m,r_t,pos_actual, target_pos_inch, error, error_integ, (target_pos_inch - pos_actual));
+        sprintf(serial_line, ">Engine RPM:%.2f\n>Secondary RPM:%.2f\n>Ratio:%.2f\n>Target Ratio:%.2f\n>Stepper Position:%.2f\n>Stepper Target:%.2f\n>Error:%.2f\n>Error Integ:%.2f\n>Error Deriv:%.2f\n>Dist to go:%.2f\n>P Corr:%.2f\n>I Corr:%.2f\n>D Corr:%.2f", 
+            e_rpm_m, s_rpm_m, r_m,r_t,pos_actual, target_pos_inch, error, error_integ, error_deriv, (target_pos_inch - pos_actual), Kp*error, Ki*error_integ, Kd*error_deriv);
         Serial.println(serial_line);
         log_file.println(new_line);
         lines_written++;
@@ -244,6 +251,7 @@ void loop() {
             last_flush = lines_written;
         }
     }
+
     #ifdef STEPPER_ENABLE
     stepper.run();
     #endif
