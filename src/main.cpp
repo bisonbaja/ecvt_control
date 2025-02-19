@@ -16,8 +16,8 @@
 #include <AccelStepper.h>
 #define ENGINE_TACH_PIN     4
 #define SECONDARY_TACH_PIN  5
-#define ENGINE_NUM_MAGS 1
-#define SECONDARY_NUM_MAGS 1
+#define ENGINE_NUM_MAGS 0.25
+#define SECONDARY_NUM_MAGS 0.25
 #define ENGINE_AVG 4
 #define SECONDARY_AVG 4
 #define FAKE_DEF_RPM 2000
@@ -33,6 +33,8 @@ const double e_rpm_t = 3000;
 const double e_rpm_const = 60000000.0/ENGINE_NUM_MAGS;
 const double s_rpm_const = 60000000.0/SECONDARY_NUM_MAGS;
 const unsigned int steps_per_linch = 800; // 4 rev/in * 200 step/rev 
+const unsigned int stepper_max_accel = steps_per_linch*2;
+const unsigned int stepper_max_speed = steps_per_linch*4;
 const double Kp = -0.25;
 const double Ki = -0.5;
 const double Kd = -0.02;
@@ -147,9 +149,12 @@ void updatePID() { // ~200 micros
     error = r_t - r_m;
     error_deriv = (error-last_error)/dt;
     error_integ += error*dt;
+
     if (error_integ > max_error_integ) error_integ = max_error_integ;
     if (error_integ < min_error_integ) error_integ = min_error_integ;
+    // BIAS + P + I + D
     target_pos_inch = 0.5*max_pos_inch + Kp*error + Ki*error_integ + Kd*error_deriv;
+
     if (target_pos_inch < 0) target_pos_inch = 0;
     if (target_pos_inch > max_pos_inch) target_pos_inch = max_pos_inch;
 }
@@ -200,8 +205,8 @@ void setup() {
 
     #ifdef STEPPER_ENABLE
     // Initialize stepper for accel control
-    stepper.setMaxSpeed(4*steps_per_linch);
-    stepper.setAcceleration(8*steps_per_linch);
+    stepper.setMaxSpeed(stepper_max_speed);
+    stepper.setAcceleration(stepper_max_accel);
     #endif
     delay(1000);
     log_file.println("time (ms), eRPM, sRPM, r_t, r_m, target_pos, curr_pos");
@@ -222,7 +227,7 @@ void loop() {
     }
 
     if (millis() - log_last_time >= log_delay) {
-        log_last_time = log_last_time + log_delay;
+        log_last_time += log_delay;
         // LOG FORMAT
         // time (ms), eRPM, sRPM, r_t, r_m, target_pos, curr_pos
         
