@@ -14,6 +14,7 @@
 #include <SPI.h>
 #include <SD.h>
 #include <AccelStepper.h>
+
 #define ENGINE_TACH_PIN     4
 #define SECONDARY_TACH_PIN  5
 #define ENGINE_NUM_MAGS 0.25
@@ -47,6 +48,7 @@ unsigned long log_last_time;
 #ifdef STEPPER_ENABLE
 // Define a stepper and the pins it will use
 AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN); // Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5
+
 #endif
 
 const double model_r[] = {0.9,    1,     1.1,    1.2,    1.3,    1.4,    1.5,    1.6,   1.7,    1.8,    1.9,    2,      2.1,    2.2,    2.3,    2.4,    2.5,    2.6,    2.7,    2.8,    2.9,    3,      3.1,    3.2,    3.3,    3.4,    3.5,    3.6,    3.7,    3.8,    3.9};
@@ -207,6 +209,7 @@ void setup() {
     // Initialize stepper for accel control
     stepper.setMaxSpeed(stepper_max_speed);
     stepper.setAcceleration(stepper_max_accel);
+
     #endif
     delay(1000);
     log_file.println("time (ms), eRPM, sRPM, r_t, r_m, target_pos, curr_pos");
@@ -239,15 +242,27 @@ void loop() {
             r_m,
             target_pos_inch,
             #ifdef STEPPER_ENABLE
-            (stepper.currentPosition()/double(steps_per_linch) )
+            (stepper.currentPosition() /double(steps_per_linch) )
             #else
             0
             #endif
             );
         char serial_line[256];
-        double pos_actual = (stepper.currentPosition()/double(steps_per_linch) );
+        double pos_actual = (stepper.currentPosition() /double(steps_per_linch) );
         sprintf(serial_line, ">Engine RPM:%.2f\n>Secondary RPM:%.2f\n>Ratio:%.2f\n>Target Ratio:%.2f\n>Stepper Position:%.2f\n>Stepper Target:%.2f\n>Error:%.2f\n>Error Integ:%.2f\n>Error Deriv:%.2f\n>Dist to go:%.2f\n>P Corr:%.2f\n>I Corr:%.2f\n>D Corr:%.2f", 
-            e_rpm_m, s_rpm_m, r_m,r_t,pos_actual, target_pos_inch, error, error_integ, error_deriv, (target_pos_inch - pos_actual), Kp*error, Ki*error_integ, Kd*error_deriv);
+            e_rpm_m, 
+            s_rpm_m, 
+            r_m,
+            r_t,
+            pos_actual, 
+            target_pos_inch, 
+            error, 
+            error_integ, 
+            error_deriv, 
+            (target_pos_inch - pos_actual), 
+            Kp*error, 
+            Ki*error_integ, 
+            Kd*error_deriv);
         Serial.println(serial_line);
         log_file.println(new_line);
         lines_written++;
