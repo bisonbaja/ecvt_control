@@ -218,6 +218,8 @@ void setup() {
     digitalWrite(ERROR_LED, LOW);
 }
 
+
+// REWRITE below
 void loop() {
     // Check if enough time has passed to recompute target position
     if (millis() - last_time >= delta_t) { // this routine takes around 3000 micros
