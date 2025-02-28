@@ -9,25 +9,29 @@
  - data logging
  - ready/error lights
 */
-
+#include <stdio.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <driver/gpio.h>
+#include "sdkconfig.h"
 #include <Arduino.h>
-#include <SPI.h>
-#include <SD.h>
-#include <AccelStepper.h>
+#include "FastAccelStepper.h"
+#include "BluetoothSerial.h"
 
+// PIN DEFINITIONS
 #define ENGINE_TACH_PIN     4
 #define SECONDARY_TACH_PIN  5
+#define STEP_PIN 6
+#define DIR_PIN 7
+#define READY_LED 8
+#define ERROR_LED 9
+
+// TACH CONFIGURATION
 #define ENGINE_NUM_MAGS 0.25
 #define SECONDARY_NUM_MAGS 0.25
 #define ENGINE_AVG 4
 #define SECONDARY_AVG 4
 #define FAKE_DEF_RPM 2000
-
-#define STEP_PIN 6
-#define DIR_PIN 7
-#define READY_LED 8
-#define ERROR_LED 9
-#define STEPPER_ENABLE
 
 // Tuning Parameters:
 const double e_rpm_t = 3000;
@@ -45,16 +49,14 @@ const double dt = delta_t*0.001; // in seconds for PID
 const unsigned long log_delay = 200;
 unsigned long log_last_time;
 
-#ifdef STEPPER_ENABLE
-// Define a stepper and the pins it will use
-AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN); // Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5
-
-#endif
-
 const double model_r[] = {0.9,    1,     1.1,    1.2,    1.3,    1.4,    1.5,    1.6,   1.7,    1.8,    1.9,    2,      2.1,    2.2,    2.3,    2.4,    2.5,    2.6,    2.7,    2.8,    2.9,    3,      3.1,    3.2,    3.3,    3.4,    3.5,    3.6,    3.7,    3.8,    3.9};
 //const double model_P[] = {2.6793, 2.5465,2.4243, 2.3119, 2.2083, 2.1126, 2.0242, 1.9423,1.8662,	1.7956,	1.7298,	1.6683,	1.6109,	1.5571,	1.5067,	1.4593,	1.4146,	1.3726,	1.3329,	1.2953,	1.2598,	1.2261,	1.1941,	1.1637,	1.1348,	1.1073,	1.081,	1.056,	1.032,	1.0091,	0.98719};
 const double model_P[] = {1.0007, 0.9295,0.86404,0.80379,0.74825,0.697,  0.6496, 0.6057,0.56497,0.5271,	0.49182,0.4589,	0.42813,0.39931,0.37227,0.34686,0.32295,0.30041,0.27913,0.25901,0.23996,0.22191,0.20477,0.18849,0.17299,0.15824,0.14417,0.13073,0.1179, 0.10563,0.093882};
 
+FastAccelStepperEngine engine = FastAccelStepperEngine();
+FastAccelStepper *stepper = NULL;
+
+BluetoothSerial SerialBT;
 
 double error;
 double last_error;
@@ -70,11 +72,6 @@ double target_pos_inch = 0;
 
 unsigned long start_time;
 unsigned long last_time;
-
-File log_file;
-unsigned long lines_written = 0;
-unsigned long last_flush = 0;
-char new_line[256];
 
 volatile unsigned long e_new_pulse = 0;
 volatile unsigned long e_last_pulse = 0;
@@ -139,118 +136,35 @@ double interpolate(double x, const double *xValues, const double *yValues) {
 }
 
 // Compute RPM values, calculate ratios, error, and new target position
-void updatePID() { // ~200 micros
-    e_rpm_m = e_rpm_const/e_avg_delta();
-    s_rpm_m = s_rpm_const/s_avg_delta();
-    if (e_rpm_m <= 5 or e_rpm_m > 5000) e_rpm_m = FAKE_DEF_RPM;
-    if (s_rpm_m <= 5 or s_rpm_m > 5000) s_rpm_m = FAKE_DEF_RPM;
-    r_m = e_rpm_m / s_rpm_m;
-    r_t = e_rpm_t / s_rpm_m;
-
-    last_error = error;
-    error = r_t - r_m;
-    error_deriv = (error-last_error)/dt;
-    error_integ += error*dt;
-
-    if (error_integ > max_error_integ) error_integ = max_error_integ;
-    if (error_integ < min_error_integ) error_integ = min_error_integ;
-    // BIAS + P + I + D
-    target_pos_inch = 0.5*max_pos_inch + Kp*error + Ki*error_integ + Kd*error_deriv;
-
-    if (target_pos_inch < 0) target_pos_inch = 0;
-    if (target_pos_inch > max_pos_inch) target_pos_inch = max_pos_inch;
-}
-
-void fail() {
-    digitalWrite(READY_LED, LOW);
+void updatePID_task(void * parameter) { // ~200 micros
     while (true) {
-        digitalWrite(ERROR_LED, HIGH);
-        delay(1000);
-        digitalWrite(ERROR_LED, LOW);
-        delay(1000);
+        e_rpm_m = e_rpm_const/e_avg_delta();
+        s_rpm_m = s_rpm_const/s_avg_delta();
+        if (e_rpm_m <= 5 or e_rpm_m > 5000) e_rpm_m = FAKE_DEF_RPM;
+        if (s_rpm_m <= 5 or s_rpm_m > 5000) s_rpm_m = FAKE_DEF_RPM;
+        r_m = e_rpm_m / s_rpm_m;
+        r_t = e_rpm_t / s_rpm_m;
+
+        last_error = error;
+        error = r_t - r_m;
+        error_deriv = (error-last_error)/dt;
+        error_integ += error*dt;
+
+        if (error_integ > max_error_integ) error_integ = max_error_integ;
+        if (error_integ < min_error_integ) error_integ = min_error_integ;
+        // BIAS + P + I + D
+        target_pos_inch = 0.5*max_pos_inch + Kp*error + Ki*error_integ + Kd*error_deriv;
+
+        if (target_pos_inch < 0) target_pos_inch = 0;
+        if (target_pos_inch > max_pos_inch) target_pos_inch = max_pos_inch;
+        delay(delta_t);
     }
 }
 
-void setup() {
-    Serial.begin(115200);
-    while (!Serial) ;
-    //delay(10000);
-    // Initialize Tach Inputs
-    attachInterrupt(digitalPinToInterrupt(ENGINE_TACH_PIN), e_isr, RISING);
-    attachInterrupt(digitalPinToInterrupt(SECONDARY_TACH_PIN), s_isr, RISING);
-
-    // Init lights
-    pinMode(READY_LED, OUTPUT);
-    pinMode(ERROR_LED, OUTPUT);
-    digitalWrite(ERROR_LED, HIGH);
-
-    // Initialize SD comms
-    while (!SD.begin(SDCARD_SS_PIN)) {
-        if (millis() > 5000) fail();
-    }
-
-    // Generate filename
-    char filename[32] = "cvt_data.csv";
-    unsigned int file_index = 0;
-    while (SD.exists(filename)) {
-        file_index++;
-        sprintf(filename, "cvt_data_%u.csv", file_index);
-        if (file_index > 1000) fail();
-    }
-    Serial.println(filename);
-    log_file = SD.open(filename, FILE_WRITE);
-
-    // Mark start time
-    start_time = millis();
-    last_time = start_time;
-    log_last_time = start_time + 5;
-
-    #ifdef STEPPER_ENABLE
-    // Initialize stepper for accel control
-    stepper.setMaxSpeed(stepper_max_speed);
-    stepper.setAcceleration(stepper_max_accel);
-
-    #endif
-    delay(1000);
-    log_file.println("time (ms), eRPM, sRPM, r_t, r_m, target_pos, curr_pos");
-
-    digitalWrite(READY_LED, HIGH);
-    digitalWrite(ERROR_LED, LOW);
-}
-
-
-// REWRITE below
-void loop() {
-    // Check if enough time has passed to recompute target position
-    if (millis() - last_time >= delta_t) { // this routine takes around 3000 micros
-        last_time += delta_t;
-        updatePID();
-
-        #ifdef STEPPER_ENABLE
-        stepper.moveTo(target_pos_inch*steps_per_linch);
-        #endif
-    }
-
-    if (millis() - log_last_time >= log_delay) {
-        log_last_time += log_delay;
-        // LOG FORMAT
-        // time (ms), eRPM, sRPM, r_t, r_m, target_pos, curr_pos
-        
-        sprintf(new_line, "%u, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f", 
-            last_time, 
-            e_rpm_m,
-            s_rpm_m,
-            r_t,
-            r_m,
-            target_pos_inch,
-            #ifdef STEPPER_ENABLE
-            (stepper.currentPosition() /double(steps_per_linch) )
-            #else
-            0
-            #endif
-            );
+void logSerial_task(void * parameter) {
+    while (true) {
         char serial_line[256];
-        double pos_actual = (stepper.currentPosition() /double(steps_per_linch) );
+        double pos_actual = (stepper->getCurrentPosition() /double(steps_per_linch) );
         sprintf(serial_line, ">Engine RPM:%.2f\n>Secondary RPM:%.2f\n>Ratio:%.2f\n>Target Ratio:%.2f\n>Stepper Position:%.2f\n>Stepper Target:%.2f\n>Error:%.2f\n>Error Integ:%.2f\n>Error Deriv:%.2f\n>Dist to go:%.2f\n>P Corr:%.2f\n>I Corr:%.2f\n>D Corr:%.2f", 
             e_rpm_m, 
             s_rpm_m, 
@@ -265,16 +179,48 @@ void loop() {
             Kp*error, 
             Ki*error_integ, 
             Kd*error_deriv);
-        Serial.println(serial_line);
-        log_file.println(new_line);
-        lines_written++;
-        if (lines_written - last_flush > 500) {
-            log_file.flush();
-            last_flush = lines_written;
-        }
+        SerialBT.println(serial_line);
+        delay(log_delay);
     }
+}
 
-    #ifdef STEPPER_ENABLE
-    stepper.run();
-    #endif
+void fail() {
+    digitalWrite(READY_LED, LOW);
+    while (true) {
+        digitalWrite(ERROR_LED, HIGH);
+        delay(1000);
+        digitalWrite(ERROR_LED, LOW);
+        delay(1000);
+    }
+}
+
+void setup() {
+    SerialBT.begin(115200);
+
+    // Initialize Tach Inputs
+    attachInterrupt(digitalPinToInterrupt(ENGINE_TACH_PIN), e_isr, RISING);
+    attachInterrupt(digitalPinToInterrupt(SECONDARY_TACH_PIN), s_isr, RISING);
+
+    // Init lights
+    pinMode(READY_LED, OUTPUT);
+    pinMode(ERROR_LED, OUTPUT);
+    digitalWrite(ERROR_LED, HIGH);
+
+    // Initialize stepper for accel control
+    engine.init();
+    stepper = engine.stepperConnectToPin(STEP_PIN);
+    stepper->setDirectionPin(DIR_PIN);
+    stepper->setSpeedInHz(stepper_max_speed);
+    stepper->setAcceleration(stepper_max_accel);
+
+    digitalWrite(READY_LED, HIGH);
+    digitalWrite(ERROR_LED, LOW);
+
+    xTaskCreatePinnedToCore(updatePID_task, "PID Update Loop", 8000, NULL, 2, NULL, 0); // on core 0
+    xTaskCreatePinnedToCore(logSerial_task, "Serial Logging", 8000, NULL, 1, NULL, 1); // on core 1
+}
+
+// per arduino-esp32 implementation, this is run at priority 1 on core 1. 
+void loop() {
+    vTaskDelay(portMAX_DELAY);
 }
