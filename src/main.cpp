@@ -34,15 +34,15 @@
 #define FAKE_DEF_RPM 2000
 
 // Tuning Parameters:
-const double e_rpm_t = 3000;
+double e_rpm_t = 3000;
 const double e_rpm_const = 60000000.0/ENGINE_NUM_MAGS;
 const double s_rpm_const = 60000000.0/SECONDARY_NUM_MAGS;
 const unsigned int steps_per_linch = 800; // 4 rev/in * 200 step/rev 
 const unsigned int stepper_max_accel = steps_per_linch*2;
 const unsigned int stepper_max_speed = steps_per_linch*4;
-const double Kp = -0.25;
-const double Ki = -0.5;
-const double Kd = -0.02;
+double Kp = -0.25;
+double Ki = -0.5;
+double Kd = -0.02;
 const double max_pos_inch = (0.925*2);
 const unsigned long delta_t = 20; // millis -> 100Hz 
 const double dt = delta_t*0.001; // in seconds for PID
@@ -181,6 +181,29 @@ void logSerial_task(void * parameter) {
             Kd*error_deriv);
         SerialBT.println(serial_line);
         delay(log_delay);
+    }
+}
+
+const char* param_labels[] = {"kp", "ki", "kd", "et"};
+double* param_vars[] = {&Kp, &Ki, &Kd, &e_rpm_t};
+const unsigned int num_params = sizeof(param_labels)/sizeof(param_labels[0]);
+void serial_callback(char * message) {
+    char buffer[16];
+    unsigned int param_match = 0;
+    if (strcmp(message, "set") == 0) {
+        SerialBT.println("Parameter Name?");
+        while (!SerialBT.available()) ;
+        SerialBT.readBytesUntil('\n', buffer, 15);
+        for (byte i = 0; i<num_params; i++) {
+            if (strcmp(buffer, param_labels[i]) == 0) {
+                param_match = i;
+                break;
+            }
+        }
+        SerialBT.println("Parameter value?");
+        while (!SerialBT.available()) ;
+        SerialBT.readBytesUntil('\n', buffer, 15);
+        *param_vars[param_match] = strtof(buffer, NULL);
     }
 }
 
