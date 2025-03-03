@@ -344,58 +344,61 @@ bool split_string(char** left, char** right, char delim) {
 }
 
 bool check_serial() {
-    while (last_input_char < &input[sizeof(input)]) {
-        int new_char = SerialBT.read();
-        if (new_char < 0) break;
-        last_input_char += 1;
-        *last_input_char = (char)new_char;
-    }
-    
-    // check if input was too long for input buffer
-    if (last_input_char == &input[sizeof(input)]) {
-        if (*last_input_char != '\n') {
-            last_input_char = input;
-            return false; 
-        }
-    }
-    
-    // if we haven't yet gotten a newline, just return
-    if (*last_input_char != '\n') return true;
-    
-    // if we got the newline, replace the newline with null terminator and do the command processing
-    *last_input_char = 0;
-    last_input_char = input;    // reset the last input character to start of input buffer
-    
-    // now we process a command
-    
-    char *next, *token;
-    next = input;
-    
-    if (!split_string(&token, &next, ' ')) return false;
-    
-    if (!strcmp(token, "set")) {
-        if (!split_string(&token, &next, ' ')) return false;
-        
-        const int count = sizeof(params) / sizeof(params[0]);
-        for (int i = 0; i < count; i += 1) {
-            Param* param = &params[i];
-            if (!strcmp(token, param->name)) {
-                if (!split_string(&token, &next, ' ')) return false;
-                *param->address = atof(token);
-                return true;
-            }
-        }
-    }
+	while (last_input_char < &input[sizeof(input)]) {
+		int new_char = SerialBT.read();
+		if (new_char < 0) break;
+		*last_input_char = (char)new_char;
+		if ((char)new_char == '\n') break;
+		last_input_char += 1;
+	}
 
-    if (!strcmp(token, "zero")) {
-        stepper->setCurrentPosition(0);
-        return true;
-    }
+	// check if input was too long for input buffer
+	if (last_input_char == &input[sizeof(input)]) {
+		if (*last_input_char != '\n') {
+			last_input_char = input;
+			return false;
+		}
+	}
 
-    if (!strcmp(token, "max")) {
-        stepper->setCurrentPosition(max_pos_inch*steps_per_linch);
-        return true;
-    }
+	// if we haven't yet gotten a newline, just return
+	if (*last_input_char != '\n') return true;
+
+	// if we got the newline, replace the newline with null terminator and do the command processing
+	*last_input_char = 0;
+	last_input_char = input;    // reset the last input character to start of input buffer
+
+	// now we process a command
+
+	char *next, *token;
+	next = input;
+
+	if (!split_string(&token, &next, ' ')) return false;
+
+	if (!strcmp(token, "set")) {
+		if (!split_string(&token, &next, ' ')) return false;
+
+		const int count = sizeof(params) / sizeof(params[0]);
+		for (int i = 0; i < count; i += 1) {
+			Param* param = &params[i];
+			if (!strcmp(token, param->name)) {
+				if (!split_string(&token, &next, ' ')) return false;
+				*param->address = atof(token);
+				return true;
+			}
+		}
+	}
+
+	if (!strcmp(token, "zero")) {
+		stepper->setCurrentPosition(0);
+		return true;
+	}
+
+	if (!strcmp(token, "max")) {
+		stepper->setCurrentPosition(max_pos_inch*steps_per_linch);
+		return true;
+	}
+	
+	return true;
 }
 
 void serial_command_task(void * parameter) {
