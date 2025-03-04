@@ -59,6 +59,9 @@ bool max(char* rest) {
 	return true;
 }
 
+char input[256];
+char* last_input_char = input;
+
 bool check_serial() {
 	while (last_input_char < &input[sizeof(input)] && SerialBT.available()) { // if still in buffer limits 
 		int new_char = SerialBT.read(); // read a single character

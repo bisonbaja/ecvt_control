@@ -23,6 +23,4 @@ bool max(char* rest);
 
 extern Command commands[];
 
-char input[128];
-char* last_input_char;
 #endif // UTILS_H
