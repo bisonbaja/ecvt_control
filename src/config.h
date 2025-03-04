@@ -79,24 +79,6 @@ double e_avg_delta();
 void s_isr();
 double s_avg_delta();
 
-struct Param {
-    const char* name;
-    double* address;
-};
-
-extern Param params[];
-
-bool set(char* token);
-bool zero(char* rest);
-bool max(char* rest);
-
-struct Command {
-    const char* name;
-    bool (*func)(char* rest);
-};
-
-extern Command commands[];
-
 extern double error;
 extern double last_error;
 extern double error_deriv;

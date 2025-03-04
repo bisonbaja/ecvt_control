@@ -72,43 +72,6 @@ void logSerial_task(void * parameter) {
     }
 }
 
-bool check_serial() {
-    while (last_input_char < &input[sizeof(input)] && SerialBT.available()) {
-        int new_char = SerialBT.read();
-        if (new_char < 0) break;
-        *last_input_char = (char)new_char;
-        if ((char)new_char == '\n') break;
-        last_input_char += 1;
-    }
-
-    if (last_input_char == &input[sizeof(input)]) {
-        if (*last_input_char != '\n') {
-            last_input_char = input;
-            return false;
-        }
-    }
-
-    if (*last_input_char != '\n') return true;
-
-    *last_input_char = 0;
-    last_input_char = input;
-
-    char *next, *token;
-    next = input;
-
-    if (!split_string(&token, &next, ' ')) return false;
-
-    const int count = sizeof(commands) / sizeof(commands[0]);
-    for (int i = 0; i < count; i += 1) {
-        Command* command = &commands[i];
-        if (!strcmp(token, command->name)) {
-            return command->func(next);
-        }
-    }
-
-    return true;
-}
-
 void serial_command_task(void * parameter) {
     for (;;) {
         check_serial();
