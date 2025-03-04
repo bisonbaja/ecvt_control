@@ -248,6 +248,71 @@ double interpolate(double x, const double *xValues, const double *yValues) {
     return y0 + (x - x0) * (y1 - y0) / (x1 - x0);
 }
 
+bool split_string(char** left, char** right, char delim) {
+	if (**right == 0) return false; // if value at *right == '\0'
+	 // right would be zero if it was otherwise set there by a previous run of split_string
+	 // i.e. there is no more text to digest
+	 // If there was already a null (only one token is in the input string **left)
+	 // then split_string returns false because there is no more text
+
+	*left = *right; // point at same address
+	while (**right && **right != delim) { // right is not '\0' or delim
+		*right += 1; // move right one address over
+	}
+	if (**right != 0) { // if right is not '\0', it must have been delim
+		**right = 0; // make it null
+		*right += 1; // move one more -> so right references after the null
+	}
+	return true;
+}
+
+struct Param{
+    const char* name;
+    double* address;
+} ;
+
+Param params[] = {
+    {"kp", &Kp},
+    {"ki", &Ki},
+    {"kd", &Kd},
+    {"et", &e_rpm_t}
+};
+bool set(char* token) {
+	char *next;
+	next = token;
+	if (!split_string(&token, &next, ' ')) return false;
+	const int count = sizeof(params) / sizeof(params[0]);
+	for (int i = 0; i < count; i += 1) {
+		Param* param = &params[i];
+		if (!strcmp(token, param->name)) {
+			if (!split_string(&token, &next, ' ')) return false;
+			*param->address = atof(token);
+			return true;
+		}
+	}
+}
+
+bool zero(char* rest) {
+	stepper->setCurrentPosition(0);
+	return true;
+}
+
+bool max(char* rest) {
+	stepper->setCurrentPosition(max_pos_inch*steps_per_linch);
+	return true;
+}
+
+struct Command {
+	const char* name;
+	bool (*func)(char* rest);
+};
+
+Command commands[] = {
+	{"set", &set},
+	{"zero", &zero},
+	{"max", &max}
+};
+
 // Compute RPM values, calculate ratios, error, and new target position
 void updatePID_task(void * parameter) { // ~200 micros
     while (true) {
@@ -312,51 +377,23 @@ void logSerial_task(void * parameter) {
     }
 }
 
-struct Param{
-    const char* name;
-    double* address;
-} ;
-
-Param params[] = {
-    {"kp", &Kp},
-    {"ki", &Ki},
-    {"kd", &Kd},
-    {"et", &e_rpm_t}
-};
-
 char input[32];
 char* last_input_char;
 
-// "set kp -0.20"
-
-bool split_string(char** left, char** right, char delim) {
-    if (**right == 0) return false;
-    
-    *left = *right;
-    while (**right && **right != delim) {
-        *right += 1;
-    }
-    if (**right != 0) {
-        **right = 0;
-        *right += 1;
-    }
-    return true;
-}
-
 bool check_serial() {
-	while (last_input_char < &input[sizeof(input)]) {
-		int new_char = SerialBT.read();
-		if (new_char < 0) break;
-		*last_input_char = (char)new_char;
-		if ((char)new_char == '\n') break;
-		last_input_char += 1;
+	while (last_input_char < &input[sizeof(input)] && SerialBT.available()) { // if still in buffer limits 
+		int new_char = SerialBT.read(); // read a single character
+		if (new_char < 0) break; // if timeout (for some reason? even though serial.available was true)
+		*last_input_char = (char)new_char; // write new char to next place in input buffer
+		if ((char)new_char == '\n') break; // break when at end of line 
+		last_input_char += 1; // advance input place pointer
 	}
 
 	// check if input was too long for input buffer
-	if (last_input_char == &input[sizeof(input)]) {
-		if (*last_input_char != '\n') {
-			last_input_char = input;
-			return false;
+	if (last_input_char == &input[sizeof(input)]) { // if the input pointer is at the end of the buffer
+		if (*last_input_char != '\n') { // if it wasn't a newline
+			last_input_char = input; // reset the pointer
+			return false; // we failed ;(
 		}
 	}
 
@@ -374,30 +411,14 @@ bool check_serial() {
 
 	if (!split_string(&token, &next, ' ')) return false;
 
-	if (!strcmp(token, "set")) {
-		if (!split_string(&token, &next, ' ')) return false;
-
-		const int count = sizeof(params) / sizeof(params[0]);
+	const int count = sizeof(commands) / sizeof(commands[0]);
 		for (int i = 0; i < count; i += 1) {
-			Param* param = &params[i];
-			if (!strcmp(token, param->name)) {
-				if (!split_string(&token, &next, ' ')) return false;
-				*param->address = atof(token);
-				return true;
+			Command* command = &commands[i];
+			if (!strcmp(token, command->name)) {
+				return command->func(next);
 			}
 		}
-	}
 
-	if (!strcmp(token, "zero")) {
-		stepper->setCurrentPosition(0);
-		return true;
-	}
-
-	if (!strcmp(token, "max")) {
-		stepper->setCurrentPosition(max_pos_inch*steps_per_linch);
-		return true;
-	}
-	
 	return true;
 }
 
