@@ -1,9 +1,9 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include "FastAccelStepper.h"
-#include "MPU6050_6Axis_MotionApps612.h"
-#include "BluetoothSerial.h"
+#define USE_MPU
+//#define USE_SERIAL
+#define USE_BT
 
 // PIN DEFINITIONS
 #define ENGINE_TACH_PIN     4
@@ -13,6 +13,12 @@
 #define READY_LED 8
 #define ERROR_LED 9
 
+// PID DEFAULT PARAMETERS
+#define KP_DEFAULT -0.25
+#define KI_DEFAULT -0.5
+#define KD_DEFAULT -0.02
+#define E_RPM_TARGET_DEFAULT 3000
+
 // TACH CONFIGURATION
 #define ENGINE_NUM_MAGS 0.25
 #define SECONDARY_NUM_MAGS 0.25
@@ -20,87 +26,46 @@
 #define SECONDARY_AVG 4
 #define FAKE_DEF_RPM 2000
 
-// Tuning Parameters:
-extern double e_rpm_t;
-extern const double e_rpm_const;
-extern const double s_rpm_const;
-extern const unsigned int steps_per_linch;
-extern const unsigned int stepper_max_accel;
-extern const unsigned int stepper_max_speed;
-extern double Kp;
-extern double Ki;
-extern double Kd;
-extern const double max_pos_inch;
-extern const unsigned long delta_t;
-extern const double dt;
-extern const unsigned long log_delay;
-extern unsigned long log_last_time;
+// Task Priorities
+#define PID_TASK_PRIORITY 2
+#define SERIAL_TASK_PRIORITY 1
+#define COMMAND_TASK_PRIORITY 1
 
-// Exported from Octave, currently unused
-extern const double model_r[];
-extern const double model_P[];
+// Task Delays in ms
+#define PID_TASK_DELAY 5
+#define LOG_TASK_DELAY 200
+#define SERIAL_COMMAND_DELAY 500
 
-// Stepper Drive
-extern FastAccelStepperEngine engine;
-extern FastAccelStepper *stepper;
+// Mechanical Configuration
+#define STEPPER_MAX_ACCEL 800
+#define STEPPER_MAX_SPEED 3200
+#define STEPS_PER_LINCH 800
+#define MAX_POS_INCH 0.925
 
-// Bluetooth Logging
+#if defined (USE_SERIAL) && !defined (USE_BT)
+#define Serial_begin(x) Serial.begin(x)
+#define Serial_println(x) Serial.println(x)
+#define Serial_print(x) Serial.print(x)
+#define Serial_read(x) Serial.read(x)
+#define Serial_available(x) Serial.available(x)
+#endif // USE_SERIAL && !USE_BT
+
+#ifndef USE_SERIAL
+#define Serial_begin(x)
+#define Serial_println(x)
+#define Serial_print(x)
+#define Serial_read(x)
+#define Serial_available(x)
+#endif // USE_SERIAL
+
+#if defined (USE_BT) && defined (USE_SERIAL)
+#include <BluetoothSerial.h>
 extern BluetoothSerial SerialBT;
-
-// Accelerometer Gyroscope
-extern MPU6050 mpu;
-extern int const INTERRUPT_PIN;
-
-/*---MPU6050 Control/Status Variables---*/
-extern bool DMPReady;
-extern uint8_t MPUIntStatus;
-extern uint8_t devStatus;
-extern uint16_t packetSize;
-extern uint8_t FIFOBuffer[64];
-
-/*---Orientation/Motion Variables---*/ 
-extern Quaternion q;
-extern VectorInt16 aa;
-extern VectorInt16 gy;
-extern VectorInt16 aaReal;
-extern VectorInt16 aaWorld;
-extern VectorFloat gravity;
-extern float euler[3];
-extern float ypr[3];
-
-void fail();
-
-/*------Interrupt detection routine------*/
-extern volatile bool MPUInterrupt;
-void DMPDataReady();
-
-void e_isr();
-double e_avg_delta();
-void s_isr();
-double s_avg_delta();
-
-extern double error;
-extern double last_error;
-extern double error_deriv;
-extern double error_integ;
-extern double max_error_integ;
-extern double min_error_integ;
-extern double e_rpm_m;
-extern double s_rpm_m;
-extern double r_t;
-extern double r_m;
-extern double target_pos_inch;
-
-extern volatile unsigned long e_new_pulse;
-extern volatile unsigned long e_last_pulse;
-extern volatile unsigned long e_last_delta;
-extern volatile unsigned long e_deltas[ENGINE_AVG];
-extern volatile unsigned short e_delta_i;
-
-extern volatile unsigned long s_new_pulse;
-extern volatile unsigned long s_last_pulse;
-extern volatile unsigned long s_last_delta;
-extern volatile unsigned long s_deltas[SECONDARY_AVG];
-extern volatile unsigned short s_delta_i;
+#define Serial_begin(x) SerialBT.begin(x)
+#define Serial_println(x) SerialBT.println(x)
+#define Serial_print(x) SerialBT.print(x)
+#define Serial_read(x) SerialBT.read(x)
+#define Serial_available(x) SerialBT.available(x)
+#endif // USE_BT
 
 #endif // CONFIG_H

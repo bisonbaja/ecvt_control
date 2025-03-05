@@ -1,11 +1,30 @@
 #include "mpu.h"
 #include "config.h"
-#include <Arduino.h>
-#include "BluetoothSerial.h"
-#include "MPU6050_6Axis_MotionApps612.h"
 
-extern BluetoothSerial SerialBT;
 extern MPU6050 mpu;
+
+// Accelerometer Gyroscope
+MPU6050 mpu;
+int const INTERRUPT_PIN = 2;
+
+/*---MPU6050 Control/Status Variables---*/
+bool DMPReady = false;
+uint8_t MPUIntStatus = 0;
+uint8_t devStatus = 0;
+uint16_t packetSize = 0;
+uint8_t FIFOBuffer[64];
+
+/*---Orientation/Motion Variables---*/ 
+Quaternion q;
+VectorInt16 aa;
+VectorInt16 gy;
+VectorInt16 aaReal;
+VectorInt16 aaWorld;
+VectorFloat gravity;
+float euler[3];
+float ypr[3];
+
+volatile bool MPUInterrupt = false;
 
 void DMPDataReady() {
     MPUInterrupt = true;
@@ -22,13 +41,13 @@ void MPUsetup() {
     pinMode(INTERRUPT_PIN, INPUT);
 
     if (!mpu.testConnection()) {
-        SerialBT.println("MPU6050 Connection Failed!");
+        Serial_println("MPU6050 Connection Failed!");
         fail();
     } else {
-        SerialBT.println("MPU6050 Connection Successful!");
+        Serial_println("MPU6050 Connection Successful!");
     }
 
-    SerialBT.println("Initializing DMP...");
+    Serial_println("Initializing DMP...");
     devStatus = mpu.dmpInitialize();
 
     mpu.setXGyroOffset(0);
@@ -41,24 +60,24 @@ void MPUsetup() {
     if (devStatus == 0) {
         mpu.CalibrateAccel(6);
         mpu.CalibrateGyro(6);
-        SerialBT.println("These are the Active offsets: ");
+        Serial_println("These are the Active offsets: ");
         mpu.PrintActiveOffsets();
-        SerialBT.println(F("Enabling DMP..."));
+        Serial_println(F("Enabling DMP..."));
         mpu.setDMPEnabled(true);
 
-        SerialBT.print(F("Enabling interrupt detection (Arduino external interrupt "));
-        SerialBT.print(digitalPinToInterrupt(INTERRUPT_PIN));
-        SerialBT.println(F(")..."));
+        Serial_print(F("Enabling interrupt detection (Arduino external interrupt "));
+        Serial_print(digitalPinToInterrupt(INTERRUPT_PIN));
+        Serial_println(F(")..."));
         attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), DMPDataReady, RISING);
         MPUIntStatus = mpu.getIntStatus();
 
-        SerialBT.println(F("DMP ready! Waiting for first interrupt..."));
+        Serial_println(F("DMP ready! Waiting for first interrupt..."));
         DMPReady = true;
         packetSize = mpu.dmpGetFIFOPacketSize();
     } else {
-        Serial.print(F("DMP Initialization failed (code "));
-        Serial.print(devStatus);
-        Serial.println(F(")"));
+        Serial_print(F("DMP Initialization failed (code "));
+        Serial_print(devStatus);
+        Serial_println(F(")"));
     }
 }
 

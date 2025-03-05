@@ -1,9 +1,7 @@
 #include "utils.h"
 #include "config.h"
-#include <Arduino.h>
-#include "BluetoothSerial.h"
-
-extern BluetoothSerial SerialBT;
+#include "PID.h"
+#include "string.h"
 
 bool split_string(char** left, char** right, char delim) {
     if (**right == 0) return false;
@@ -18,13 +16,23 @@ bool split_string(char** left, char** right, char delim) {
     return true;
 }
 
+struct Param {
+    const char* name;
+    double* address;
+};
+
+extern Param params[];
+
+struct Command {
+    const char* name;
+    bool (*func)(char* rest);
+};
+
 Param params[] = {
     {"Kp", &Kp},
     {"Ki", &Ki},
     {"Kd", &Kd},
     {"e_rpm_t", &e_rpm_t},
-    {"max_error_integ", &max_error_integ},
-    {"min_error_integ", &min_error_integ}
 };
 
 Command commands[] = {
@@ -55,7 +63,7 @@ bool zero(char* rest) {
 }
 
 bool max(char* rest) {
-	stepper->setCurrentPosition(max_pos_inch*steps_per_linch);
+	stepper->setCurrentPosition(MAX_POS_INCH*STEPS_PER_LINCH);
 	return true;
 }
 
@@ -63,8 +71,8 @@ char input[256];
 char* last_input_char = input;
 
 bool check_serial() {
-	while (last_input_char < &input[sizeof(input)] && SerialBT.available()) { // if still in buffer limits 
-		int new_char = SerialBT.read(); // read a single character
+	while (last_input_char < &input[sizeof(input)] && Serial_available()) { // if still in buffer limits 
+		int new_char = Serial_read(); // read a single character
 		if (new_char < 0) break; // if timeout (for some reason? even though serial.available was true)
 		*last_input_char = (char)new_char; // write new char to next place in input buffer
 		if ((char)new_char == '\n') break; // break when at end of line 
@@ -113,4 +121,14 @@ double interpolate(double x, const double *xValues, const double *yValues) {
     float x0 = xValues[i - 1], x1 = xValues[i];
     float y0 = yValues[i - 1], y1 = yValues[i];
     return y0 + (x - x0) * (y1 - y0) / (x1 - x0);
+}
+
+void fail() {
+    digitalWrite(READY_LED, LOW);
+    while (true) {
+        digitalWrite(ERROR_LED, HIGH);
+        delay(1000);
+        digitalWrite(ERROR_LED, LOW);
+        delay(1000);
+    }
 }

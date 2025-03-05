@@ -1,15 +1,11 @@
 #include "config.h" // Tuning Parameters
 #include "tasks.h" // Task definitions 
 #include "mpu.h" // MPU6050 setup
-#include "utils.h" // Utility functions
-
+#include "PID.h" // PID Loop
 #include <Arduino.h>
-#include "FastAccelStepper.h"
-#include "BluetoothSerial.h"
-#include "MPU6050_6Axis_MotionApps612.h"
 
 void setup() {
-    SerialBT.begin(115200);
+    Serial_begin(115200);
 
     // Initialize Tach Inputs
     pinMode(ENGINE_TACH_PIN, INPUT);
@@ -23,21 +19,22 @@ void setup() {
     digitalWrite(ERROR_LED, HIGH);
 
     // Initialize stepper for accel control
-    engine.init();
-    stepper = engine.stepperConnectToPin(STEP_PIN);
-    stepper->setDirectionPin(DIR_PIN);
-    stepper->setSpeedInHz(stepper_max_speed);
-    stepper->setAcceleration(stepper_max_accel);
+    stepper_setup();
 
     digitalWrite(READY_LED, HIGH);
     digitalWrite(ERROR_LED, LOW);
 
-    xTaskCreate(updatePID_task, "PID Update Loop", 8000, NULL, 2, NULL);
-    xTaskCreate(logSerial_task, "Serial Logging", 8000, NULL, 1, NULL);
-    xTaskCreate(serial_command_task, "Read Serial and execute commands", 2000, NULL, 1, NULL);
+    xTaskCreate(updatePID_task, "PID Update Loop", 8000, NULL, PID_TASK_PRIORITY, NULL);
+
+    #ifdef USE_SERIAL
+    xTaskCreate(logSerial_task, "Serial Logging", 8000, NULL, SERIAL_TASK_PRIORITY, NULL);
+    xTaskCreate(serial_command_task, "Read Serial and execute commands", 2000, NULL, COMMAND_TASK_PRIORITY, NULL);
+    #endif // USE_SERIAL
+
+    vTaskDelete(NULL); // delete setup task
 }
 
-// per arduino-esp32 implementation, this is run at priority 1 on core 1. 
+// Never run
 void loop() {
     vTaskDelay(portMAX_DELAY);
 }
