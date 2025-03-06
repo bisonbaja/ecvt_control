@@ -1,9 +1,12 @@
 #include "config.h" // Tuning Parameters
 #include "tasks.h" // Task definitions 
-#include "mpu.h" // MPU6050 setup
 #include "PID.h" // PID Loop
 #include "log.h"
 #include <Arduino.h>
+
+#ifdef ARDUINO_ARCH_SAMD
+#include <FreeRTOS_SAMD21.h>
+#endif
 
 void setup() {
     Serial_begin(115200);
@@ -36,7 +39,11 @@ void setup() {
     xTaskCreate(serial_command_task, "Read Serial and execute commands", 2000, NULL, COMMAND_TASK_PRIORITY, NULL);
     #endif // USE_SERIAL
 
-    vTaskDelete(NULL); // delete setup task
+    #ifdef ARDUINO_ARCH_SAMD
+    xTaskCreate(stepper_task, "Stepper Control", 2000, NULL, STEPPER_TASK_PRIORITY, NULL);
+    vTaskStartScheduler();
+    #endif
+
 }
 
 // Never run

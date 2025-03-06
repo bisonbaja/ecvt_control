@@ -1,7 +1,7 @@
 #include "utils.h"
 #include "config.h"
 #include "PID.h"
-#include "string.h"
+#include "Arduino.h"
 
 bool split_string(char** left, char** right, char delim) {
     if (**right == 0) return false;
@@ -56,12 +56,20 @@ bool set(char* token) {
 }
 
 bool zero(char* rest) {
+	#ifdef ARDUINO_ARCH_ESP32
 	stepper->setCurrentPosition(0);
+	#elif defined(ARDUINO_ARCH_SAMD)
+	stepper.setCurrentPosition(0);
+	#endif
 	return true;
 }
 
 bool max(char* rest) {
+	#ifdef ARDUINO_ARCH_ESP32
 	stepper->setCurrentPosition(MAX_POS_INCH*STEPS_PER_LINCH);
+	#elif defined(ARDUINO_ARCH_SAMD)
+	stepper.setCurrentPosition(MAX_POS_INCH*STEPS_PER_LINCH);
+	#endif
 	return true;
 }
 
@@ -112,6 +120,7 @@ bool check_serial() {
 }
 #endif // USE_SERIAL
 
+/*
 float interpolate(float x, const float *xValues, const float *yValues) {
     unsigned int i = 0;
     unsigned int size = sizeof(xValues) / sizeof(xValues[0]);
@@ -132,3 +141,4 @@ void fail() {
         delay(1000);
     }
 }
+	*/

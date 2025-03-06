@@ -2,6 +2,10 @@
 #include "config.h"
 #include <Arduino.h>
 
+#ifdef ARDUINO_ARCH_SAMD
+#include <FreeRTOS_SAMD21.h>
+#endif
+
 const float e_rpm_const = 60000000.0 / ENGINE_NUM_MAGS; // 60s/min * 1000ms/s / num_mags
 const float s_rpm_const = 60000000.0 / SECONDARY_NUM_MAGS;
 
@@ -26,10 +30,10 @@ float Ki = KI_DEFAULT;
 float Kp = KP_DEFAULT;
 float Kd = KD_DEFAULT;
 
+#ifdef ARDUINO_ARCH_ESP32
 // Stepper Drive
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 FastAccelStepper *stepper = NULL;
-
 void stepper_setup() {
     // Initialize stepper for accel control
     engine.init();
@@ -38,6 +42,15 @@ void stepper_setup() {
     stepper->setSpeedInHz(STEPPER_MAX_SPEED);
     stepper->setAcceleration(STEPPER_MAX_ACCEL);
 }
+
+#elif defined(ARDUINO_ARCH_SAMD)
+
+AccelStepper stepper = AccelStepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
+void stepper_setup() {
+    stepper.setMaxSpeed(STEPPER_MAX_SPEED);
+    stepper.setAcceleration(STEPPER_MAX_ACCEL);
+}
+#endif // ARDUINO_ARCH_SAMD
 
 const unsigned int delta_t = PID_TASK_DELAY; // in ms
 const float dt = delta_t * 0.001; // in seconds for PID
@@ -112,7 +125,11 @@ void updatePID() {
     if (target_pos_inch < 0) target_pos_inch = 0;
     if (target_pos_inch > max_pos_inch) target_pos_inch = max_pos_inch;
 
+    #ifdef ARDUINO_ARCH_ESP32
     stepper->moveTo(target_pos_inch * STEPS_PER_LINCH);
+    #elif defined(ARDUINO_ARCH_SAMD)
+    stepper.moveTo(target_pos_inch * STEPS_PER_LINCH);
+    #endif
 
     delay(delta_t);
 }

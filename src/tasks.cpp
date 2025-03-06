@@ -5,7 +5,6 @@
 #include "mpu.h"
 #include "log.h"
 #include <Arduino.h>
-#include <FastAccelStepper.h>
 
 void updatePID_task(void * parameter) {
     for (;;) updatePID();
@@ -30,3 +29,13 @@ void serial_command_task(void * parameter) {
         delay(500);
     }
 }
+
+#ifdef ARDUINO_ARCH_SAMD
+#include <FreeRTOS_SAMD21.h>
+void stepper_task(void* parameter) {
+    for (;;) {
+        stepper.run();
+        vTaskDelay(100 / portTICK_PERIOD_US);
+    }
+}
+#endif // ARDUINO_ARCH_SAMD

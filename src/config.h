@@ -4,9 +4,9 @@
 /* BEGIN CONFIGURATION */
 
 //#define USE_MPU
-//#define USE_SERIAL
+#define USE_SERIAL
 //#define USE_BT
-#define USE_SD
+//#define USE_SD // Currently unsupported on esp32
 
 // PIN DEFINITIONS
 #define ENGINE_TACH_PIN     4
@@ -37,6 +37,7 @@
 #define PID_TASK_PRIORITY 2
 #define LOG_TASK_PRIORITY 1
 #define COMMAND_TASK_PRIORITY 1
+#define STEPPER_TASK_PRIORITY 5 // only applies to SAMD
 
 // Task Delays in ms
 #define PID_TASK_DELAY 5

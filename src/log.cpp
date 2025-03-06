@@ -53,12 +53,12 @@ char* build_csv(char* buffer) {
 // Builds one line of teleplot and returns the next character to write to
 char* build_teleplot(char* buffer) { 
     char* next = buffer;
-    char formbuf[32];
+    char formbuf[128];
     const int count = sizeof(datapoints) / sizeof(datapoints[0]);
     for (int i = 0; i < count; i += 1) {
         Datapoint* datapoint = &datapoints[i];
         if (datapoint->displayInTeleplot) {
-            sprintf(formbuf, ">%s:%lu:%s\n", datapoint->name, millis(), datapoint->format);
+            snprintf(formbuf, sizeof(formbuf), ">%s:%lu:%s\n", datapoint->name, millis(), datapoint->format);
             next += sprintf(next, formbuf, *datapoint->value);
         }
     }
