@@ -18,10 +18,8 @@ bool split_string(char** left, char** right, char delim) {
 
 struct Param {
     const char* name;
-    double* address;
+    float* address;
 };
-
-extern Param params[];
 
 struct Command {
     const char* name;
@@ -70,6 +68,7 @@ bool max(char* rest) {
 char input[256];
 char* last_input_char = input;
 
+#ifdef USE_SERIAL
 bool check_serial() {
 	while (last_input_char < &input[sizeof(input)] && Serial_available()) { // if still in buffer limits 
 		int new_char = Serial_read(); // read a single character
@@ -111,8 +110,9 @@ bool check_serial() {
 
 	return true;
 }
+#endif // USE_SERIAL
 
-double interpolate(double x, const double *xValues, const double *yValues) {
+float interpolate(float x, const float *xValues, const float *yValues) {
     unsigned int i = 0;
     unsigned int size = sizeof(xValues) / sizeof(xValues[0]);
     while (x > xValues[i] && i < size - 1) {

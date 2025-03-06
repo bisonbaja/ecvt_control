@@ -1,9 +1,12 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define USE_MPU
+/* BEGIN CONFIGURATION */
+
+//#define USE_MPU
 //#define USE_SERIAL
-#define USE_BT
+//#define USE_BT
+#define USE_SD
 
 // PIN DEFINITIONS
 #define ENGINE_TACH_PIN     4
@@ -12,6 +15,10 @@
 #define DIR_PIN 7
 #define READY_LED 8
 #define ERROR_LED 9
+#define SD_CS 10
+#define SD_MOSI 11
+#define SD_MISO 12
+#define SD_SCK 13
 
 // PID DEFAULT PARAMETERS
 #define KP_DEFAULT -0.25
@@ -28,7 +35,7 @@
 
 // Task Priorities
 #define PID_TASK_PRIORITY 2
-#define SERIAL_TASK_PRIORITY 1
+#define LOG_TASK_PRIORITY 1
 #define COMMAND_TASK_PRIORITY 1
 
 // Task Delays in ms
@@ -41,6 +48,8 @@
 #define STEPPER_MAX_SPEED 3200
 #define STEPS_PER_LINCH 800
 #define MAX_POS_INCH 0.925
+
+/* END CONFIGURATION */
 
 #if defined (USE_SERIAL) && !defined (USE_BT)
 #define Serial_begin(x) Serial.begin(x)

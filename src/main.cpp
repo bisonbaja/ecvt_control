@@ -2,6 +2,7 @@
 #include "tasks.h" // Task definitions 
 #include "mpu.h" // MPU6050 setup
 #include "PID.h" // PID Loop
+#include "log.h"
 #include <Arduino.h>
 
 void setup() {
@@ -26,8 +27,12 @@ void setup() {
 
     xTaskCreate(updatePID_task, "PID Update Loop", 8000, NULL, PID_TASK_PRIORITY, NULL);
 
+    #ifdef USE_SD
+    SD_init();
+    #endif // USE_SD
+    
+    xTaskCreate(log_task, "Serial Logging", 8000, NULL, LOG_TASK_PRIORITY, NULL);
     #ifdef USE_SERIAL
-    xTaskCreate(logSerial_task, "Serial Logging", 8000, NULL, SERIAL_TASK_PRIORITY, NULL);
     xTaskCreate(serial_command_task, "Read Serial and execute commands", 2000, NULL, COMMAND_TASK_PRIORITY, NULL);
     #endif // USE_SERIAL
 
