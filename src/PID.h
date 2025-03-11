@@ -1,11 +1,7 @@
 #ifndef PID_H
 #define PID_H
 
-#ifdef ARDUINO_ARCH_ESP32
 #include "FastAccelStepper.h"
-#elif defined(ARDUINO_ARCH_SAMD)
-#include <AccelStepper.h>
-#endif
 
 void updatePID();
 void e_isr();
@@ -24,10 +20,6 @@ extern float error_deriv;
 extern float e_rpm_t;
 extern float target_pos_inch;
 
-#ifdef ARDUINO_ARCH_ESP32
 extern FastAccelStepper *stepper;
-#elif defined(ARDUINO_ARCH_SAMD)
-extern AccelStepper stepper;
-#endif
 
 #endif // PID_H

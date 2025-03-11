@@ -41,13 +41,13 @@ void MPUsetup() {
     pinMode(INTERRUPT_PIN, INPUT);
 
     if (!mpu.testConnection()) {
-        Serial_println("MPU6050 Connection Failed!");
+        Serial.println("MPU6050 Connection Failed!");
         fail();
     } else {
-        Serial_println("MPU6050 Connection Successful!");
+        Serial.println("MPU6050 Connection Successful!");
     }
 
-    Serial_println("Initializing DMP...");
+    Serial.println("Initializing DMP...");
     devStatus = mpu.dmpInitialize();
 
     mpu.setXGyroOffset(0);
@@ -60,24 +60,24 @@ void MPUsetup() {
     if (devStatus == 0) {
         mpu.CalibrateAccel(6);
         mpu.CalibrateGyro(6);
-        Serial_println("These are the Active offsets: ");
+        Serial.println("These are the Active offsets: ");
         mpu.PrintActiveOffsets();
-        Serial_println(F("Enabling DMP..."));
+        Serial.println(F("Enabling DMP..."));
         mpu.setDMPEnabled(true);
 
-        Serial_print(F("Enabling interrupt detection (Arduino external interrupt "));
-        Serial_print(digitalPinToInterrupt(INTERRUPT_PIN));
-        Serial_println(F(")..."));
+        Serial.print(F("Enabling interrupt detection (Arduino external interrupt "));
+        Serial.print(digitalPinToInterrupt(INTERRUPT_PIN));
+        Serial.println(F(")..."));
         attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), DMPDataReady, RISING);
         MPUIntStatus = mpu.getIntStatus();
 
-        Serial_println(F("DMP ready! Waiting for first interrupt..."));
+        Serial.println(F("DMP ready! Waiting for first interrupt..."));
         DMPReady = true;
         packetSize = mpu.dmpGetFIFOPacketSize();
     } else {
-        Serial_print(F("DMP Initialization failed (code "));
-        Serial_print(devStatus);
-        Serial_println(F(")"));
+        Serial.print(F("DMP Initialization failed (code "));
+        Serial.print(devStatus);
+        Serial.println(F(")"));
     }
 }
 

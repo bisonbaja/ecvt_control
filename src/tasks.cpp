@@ -6,36 +6,38 @@
 #include "log.h"
 #include <Arduino.h>
 
+float last_lt = 0;
+
+/*
+void step_task(void * parameter) {
+    for (;;) {
+        stepper.run();
+        delayMicroseconds(STEP_DELAY_US);
+    }
+}
+    */
+
 void updatePID_task(void * parameter) {
     for (;;) updatePID();
 }
 
 void log_task(void * parameter) {
     while (true) {
-        #ifdef USE_SD
-        log_CSV();
-        #endif // USE_SD
-    
-        #ifdef USE_SERIAL
         log_teleplot();
-        #endif // USE_SERIAL
         delay(LOG_TASK_DELAY);
+    }
+}
+
+void SD_task(void * parameter) {
+    for (;;){
+        log_CSV();
+        delay(SD_TASK_DELAY);
     }
 }
 
 void serial_command_task(void * parameter) {
     for (;;) {
         check_serial();
-        delay(500);
+        delay(SERIAL_COMMAND_DELAY);
     }
 }
-
-#ifdef ARDUINO_ARCH_SAMD
-#include <FreeRTOS_SAMD21.h>
-void stepper_task(void* parameter) {
-    for (;;) {
-        stepper.run();
-        vTaskDelay(100 / portTICK_PERIOD_US);
-    }
-}
-#endif // ARDUINO_ARCH_SAMD

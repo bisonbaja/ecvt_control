@@ -2,13 +2,8 @@
 #include "config.h"
 #include <Arduino.h>
 
-#ifdef ARDUINO_ARCH_SAMD
-#include <FreeRTOS_SAMD21.h>
-#endif
-
 const float e_rpm_const = 60000000.0 / ENGINE_NUM_MAGS; // 60s/min * 1000ms/s / num_mags
 const float s_rpm_const = 60000000.0 / SECONDARY_NUM_MAGS;
-
 
 // Exported from Octave, currently unused
 const float model_r[] = {0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9};
@@ -18,7 +13,7 @@ float last_error = 0.0;
 float error_deriv = 0.0;
 float error_integ = 0.0;
 const float max_pos_inch = 0.925 * 2; // *2 from yoke leverage
-float max_error_integ = max_pos_inch / KI_DEFAULT;
+float max_error_integ = abs(max_pos_inch / KI_DEFAULT);
 float min_error_integ = -max_error_integ;
 float e_rpm_t = E_RPM_TARGET_DEFAULT;
 float e_rpm_m = 0.0;
@@ -30,27 +25,16 @@ float Ki = KI_DEFAULT;
 float Kp = KP_DEFAULT;
 float Kd = KD_DEFAULT;
 
-#ifdef ARDUINO_ARCH_ESP32
-// Stepper Drive
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 FastAccelStepper *stepper = NULL;
 void stepper_setup() {
     // Initialize stepper for accel control
-    engine.init();
+    engine.init(0);
     stepper = engine.stepperConnectToPin(STEP_PIN);
     stepper->setDirectionPin(DIR_PIN);
     stepper->setSpeedInHz(STEPPER_MAX_SPEED);
     stepper->setAcceleration(STEPPER_MAX_ACCEL);
 }
-
-#elif defined(ARDUINO_ARCH_SAMD)
-
-AccelStepper stepper = AccelStepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
-void stepper_setup() {
-    stepper.setMaxSpeed(STEPPER_MAX_SPEED);
-    stepper.setAcceleration(STEPPER_MAX_ACCEL);
-}
-#endif // ARDUINO_ARCH_SAMD
 
 const unsigned int delta_t = PID_TASK_DELAY; // in ms
 const float dt = delta_t * 0.001; // in seconds for PID
@@ -67,7 +51,7 @@ volatile unsigned long s_last_delta = 0;
 volatile unsigned long s_deltas[SECONDARY_AVG] = {0};
 volatile unsigned short s_delta_i = 0;
 
-void e_isr() { // 4 micros
+IRAM_ATTR void e_isr() { // 4 micros
     e_new_pulse = micros();
     e_last_delta = e_new_pulse - e_last_pulse;
     e_last_pulse = e_new_pulse;
@@ -85,7 +69,7 @@ float e_avg_delta() {
     return ret_val/ENGINE_AVG;
 }
 
-void s_isr() {
+IRAM_ATTR void s_isr() {
     s_new_pulse = micros();
     s_last_delta = s_new_pulse - s_last_pulse;
     s_last_pulse = s_new_pulse;
@@ -106,8 +90,8 @@ float s_avg_delta() {
 void updatePID() {
     e_rpm_m = e_rpm_const / e_avg_delta();
     s_rpm_m = s_rpm_const / s_avg_delta();
-    if (e_rpm_m <= 5 || e_rpm_m > 5000) e_rpm_m = FAKE_DEF_RPM;
-    if (s_rpm_m <= 5 || s_rpm_m > 5000) s_rpm_m = FAKE_DEF_RPM;
+    if (e_rpm_m <= 5 || e_rpm_m > 10000) e_rpm_m = FAKE_DEF_RPM;
+    if (s_rpm_m <= 5 || s_rpm_m > 10000) s_rpm_m = FAKE_DEF_RPM;
     r_m = e_rpm_m / s_rpm_m;
     r_t = e_rpm_t / s_rpm_m;
 
@@ -125,11 +109,7 @@ void updatePID() {
     if (target_pos_inch < 0) target_pos_inch = 0;
     if (target_pos_inch > max_pos_inch) target_pos_inch = max_pos_inch;
 
-    #ifdef ARDUINO_ARCH_ESP32
     stepper->moveTo(target_pos_inch * STEPS_PER_LINCH);
-    #elif defined(ARDUINO_ARCH_SAMD)
-    stepper.moveTo(target_pos_inch * STEPS_PER_LINCH);
-    #endif
 
     delay(delta_t);
 }

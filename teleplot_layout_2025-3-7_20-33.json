@@ -1,0 +1,161 @@
+{
+   "widgets": [
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "Engine RPM",
+               "sourceNames": [
+                  "Engine RPM"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "Engine RPM",
+                  "_id": "data-serie-9",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "Secondary RPM",
+               "sourceNames": [
+                  "Secondary RPM"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "Secondary RPM",
+                  "_id": "data-serie-10",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "Target Ratio",
+               "sourceNames": [
+                  "Target Ratio"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "Target Ratio",
+                  "_id": "data-serie-12",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "Measured Ratio",
+               "sourceNames": [
+                  "Measured Ratio"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "Measured Ratio",
+                  "_id": "data-serie-20",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "Error Integral",
+               "sourceNames": [
+                  "Error Integral"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "Error Integral",
+                  "_id": "data-serie-18",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "Error Derivative",
+               "sourceNames": [
+                  "Error Derivative"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "Error Derivative",
+                  "_id": "data-serie-19",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "Error",
+               "sourceNames": [
+                  "Error"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "Error",
+                  "_id": "data-serie-22",
+                  "stroke": "rgba(46,204,113,1)",
+                  "fill": "rgba(46,204,113,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "Stepper Position",
+               "sourceNames": [
+                  "Stepper Position"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "Stepper Position",
+                  "_id": "data-serie-21",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      }
+   ],
+   "viewDuration": "10"
+}
