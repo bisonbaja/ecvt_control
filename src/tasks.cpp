@@ -22,14 +22,14 @@ void updatePID_task(void * parameter) {
 }
 
 void log_task(void * parameter) {
-    while (true) {
+    for (;;) {
         log_teleplot();
         delay(LOG_TASK_DELAY);
     }
 }
 
 void SD_task(void * parameter) {
-    for (;;){
+    for (;;) {
         log_CSV();
         delay(SD_TASK_DELAY);
     }

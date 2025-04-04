@@ -208,6 +208,6 @@ void log_CSV() {
 #ifdef USE_BT
 void log_teleplot() {
     build_teleplot(teleplot_buffer);
-    Serial.println(teleplot_buffer);
+    BT.println(teleplot_buffer);
 }
 #endif // USE_SERIAL
