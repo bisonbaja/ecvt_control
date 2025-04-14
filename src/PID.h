@@ -19,6 +19,18 @@ extern float error_integ;
 extern float error_deriv;
 extern float e_rpm_t;
 extern float target_pos_inch;
+extern float max_error_deriv;
+extern float engage_pos;
+extern float max_pos_inch;
+extern float ff_pos;
+
+enum runMode {
+    DEBUG,
+    RPM,
+    MANUAL
+};
+
+extern runMode current_mode;
 
 extern FastAccelStepper *stepper;
 

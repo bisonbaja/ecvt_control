@@ -8,15 +8,6 @@
 
 float last_lt = 0;
 
-/*
-void step_task(void * parameter) {
-    for (;;) {
-        stepper.run();
-        delayMicroseconds(STEP_DELAY_US);
-    }
-}
-    */
-
 void updatePID_task(void * parameter) {
     for (;;) updatePID();
 }

@@ -3,7 +3,7 @@
 #include "PID.h"
 #include "Arduino.h"
 
-bool split_string(char** left, char** right, char delim) {
+bool split_string(char** left, char** right, char delim) { // leaves left as null-terminated string ending at delim, sets right to after delim
     if (**right == 0) return false;
     *left = *right;
     while (**right && **right != delim) {
@@ -16,9 +16,18 @@ bool split_string(char** left, char** right, char delim) {
     return true;
 }
 
-float interpolate(float x, const float *xValues, const float *yValues) {
+float symminmax(float x, float cap) {
+    if (x >= cap) return cap;
+    if (x <= -cap) return -cap;
+    return x;
+}
+
+float interpolate(float x, const float *xValues, const float *yValues, int size) {
     unsigned int i = 0;
-    unsigned int size = sizeof(xValues) / sizeof(xValues[0]);
+    
+	if (x <= xValues[0]) return yValues[0];
+	if (x >= xValues[size - 1]) return yValues[size - 1];
+
     while (x > xValues[i] && i < size - 1) {
         i++;
     }

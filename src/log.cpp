@@ -13,7 +13,11 @@ Param params[] = {
     {"kp", &Kp},
     {"ki", &Ki},
     {"kd", &Kd},
-    {"e_rpm_t", &e_rpm_t},
+    {"rpmt", &e_rpm_t},
+    {"rt", &r_t},
+    {"pt", &target_pos_inch},
+    {"engage", &engage_pos}, 
+    {"maxderiv", &max_error_deriv}
 };
 
 bool set(char* token) {
@@ -26,8 +30,8 @@ bool set(char* token) {
 		if (!strcasecmp(token, param->name)) {
 			if (!split_string(&token, &next, ' ')) return false;
 			*param->address = atof(token);
-            Serial.print("SET PARAMETER: ");
-            Serial.println(*param->address);
+            BT.print("SET PARAMETER: ");
+            BT.println(*param->address);
 			return true;
 		}
 	}
@@ -36,14 +40,51 @@ bool set(char* token) {
 
 bool zero(char* rest) {
 	stepper->setCurrentPosition(0);
-    Serial.println("ZEROED");
+    stepper->moveTo(0);
+    BT.println("ZEROED");
 	return true;
 }
 
 bool max(char* rest) {
-	stepper->setCurrentPosition(MAX_POS_INCH*STEPS_PER_LINCH);
-    Serial.println("MAXED");
+	stepper->setCurrentPosition(MAX_POS_INCH*STEPS_PER_INCH);
+    stepper->moveTo(MAX_POS_INCH*STEPS_PER_INCH);
+    BT.println("MAXXED");
 	return true;
+}
+
+bool set_engage(char* rest) {
+    stepper->setCurrentPosition(ENGAGE_POS*STEPS_PER_INCH);
+    stepper->moveTo(ENGAGE_POS*STEPS_PER_INCH);
+    BT.println("Datum set to engagement position");
+    return true;
+}
+
+bool print_pos(char* rest) {
+    BT.print("Current Position: ");
+    BT.println(stepper->getCurrentPosition() / STEPS_PER_INCH);
+    return true;
+}
+
+bool go(char* token) {
+    char *next = token;
+	if (!split_string(&token, &next, ' ')) return false; // token now contains value
+    target_pos_inch = atof(token);
+    return true;
+}
+
+bool manual_mode(char* rest) {
+    current_mode = MANUAL;
+    return true;
+}
+
+bool normal_mode(char * rest) {
+    current_mode = RPM;
+    return true;
+}
+
+bool debug_mode(char * rest) {
+    current_mode = DEBUG;
+    return true;
 }
 
 struct Command {
@@ -54,7 +95,13 @@ struct Command {
 Command commands[] = {
     {"set", set},
     {"zero", zero},
-    {"max", max}
+    {"max", max},
+    {"seteng", set_engage},
+    {"getpos", print_pos},
+    {"go", go},
+    {"normal", normal_mode},
+    {"debug", debug_mode},
+    {"manual", manual_mode}
 };
 
 char input[1024];
@@ -62,8 +109,8 @@ char* last_input_char = input;
 
 #if defined(USE_BT)
 bool check_serial() {
-	while (last_input_char < &input[sizeof(input)] && Serial.available()) { // if still in buffer limits 
-		int new_char = Serial.read(); // read a single character
+	while (last_input_char < &input[sizeof(input)] && BT.available()) { // if still in buffer limits 
+		int new_char = BT.read(); // read a single character
 		if (new_char < 0) break; // if timeout (for some reason? even though serial.available was true)
 		*last_input_char = (char)new_char; // write new char to next place in input buffer
 		if ((char)new_char == '\n') break; // break when at end of line 
@@ -126,15 +173,13 @@ Datapoint datapoints[] = {
     {"Error", &error, "%.2f", true, true},
     {"Error Integral", &error_integ, "%.2f", true, true},
     {"Error Derivative", &error_deriv, "%.2f", true, true},
+    {"Feed Forward Position", &ff_pos, "%.2f", true, true},
     {"Engine RPM Target", &e_rpm_t, "%.0f", true, true},
     {"Engine RPM", &e_rpm_m, "%.0f", true, true},
     {"Secondary RPM", &s_rpm_m, "%.0f", true, true},
     {"Target Ratio", &r_t, "%.2f", true, true},
     {"Measured Ratio", &r_m, "%.2f", true, true},
     {"Stepper Position", &target_pos_inch, "%.2f", true, true},
-    {"Error", &error, "%.2f", true, true},
-    {"Error Integral", &error_integ, "%.2f", true, true},
-    {"Error Derivative", &error_deriv, "%.2f", true, true},
     {"Kp", &Kp, "%.2f", true, true},
     {"Ki", &Ki, "%.2f", true, true},
     {"Kd", &Kd, "%.2f", true, true},
@@ -174,7 +219,7 @@ char* build_teleplot(char* buffer) {
 #ifdef USE_SD
 void SD_init() {
     if (!SD.begin()) {
-        Serial.println("SD Card failed to initialize, or not present");
+        BT.println("SD Card failed to initialize, or not present");
         return;
     }
     char filename[16] = "/D0.csv";
@@ -185,7 +230,7 @@ void SD_init() {
     }
     logFile = SD.open(filename, FILE_WRITE);
     if (!logFile) {
-        Serial.println("Failed to open log.csv");
+        BT.println("Failed to open log.csv");
         return;
     }
 }
