@@ -8,7 +8,7 @@
 
 //#define USE_MPU
 #define USE_SERIAL // currently set up for debug
-#define USE_BT // currently used for data
+//#define USE_BT // currently used for data
 //#define USE_SD 
 #define SERIAL_BAUDRATE 115200
 #define BT_NAME "ESP32_CVT"
