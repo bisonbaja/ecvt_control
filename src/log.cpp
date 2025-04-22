@@ -30,8 +30,8 @@ bool set(char* token) {
 		if (!strcasecmp(token, param->name)) {
 			if (!split_string(&token, &next, ' ')) return false;
 			*param->address = atof(token);
-            BT.print("SET PARAMETER: ");
-            BT.println(*param->address);
+            data_print("SET PARAMETER: ");
+            data_println(*param->address);
 			return true;
 		}
 	}
@@ -41,27 +41,27 @@ bool set(char* token) {
 bool zero(char* rest) {
 	stepper->setCurrentPosition(0);
     stepper->moveTo(0);
-    BT.println("ZEROED");
+    data_println("ZEROED");
 	return true;
 }
 
 bool max(char* rest) {
 	stepper->setCurrentPosition(MAX_POS_INCH*STEPS_PER_INCH);
     stepper->moveTo(MAX_POS_INCH*STEPS_PER_INCH);
-    BT.println("MAXXED");
+    data_println("MAXXED");
 	return true;
 }
 
 bool set_engage(char* rest) {
     stepper->setCurrentPosition(ENGAGE_POS*STEPS_PER_INCH);
     stepper->moveTo(ENGAGE_POS*STEPS_PER_INCH);
-    BT.println("Datum set to engagement position");
+    data_println("Datum set to engagement position");
     return true;
 }
 
 bool print_pos(char* rest) {
-    BT.print("Current Position: ");
-    BT.println(stepper->getCurrentPosition() / STEPS_PER_INCH);
+    data_print("Current Position: ");
+    data_println(stepper->getCurrentPosition() / STEPS_PER_INCH);
     return true;
 }
 
@@ -74,16 +74,19 @@ bool go(char* token) {
 
 bool manual_mode(char* rest) {
     current_mode = MANUAL;
+    data_println("Manual Mode");
     return true;
 }
 
 bool normal_mode(char * rest) {
     current_mode = RPM;
+    data_println("RPM (Normal) Mode");
     return true;
 }
 
 bool debug_mode(char * rest) {
     current_mode = DEBUG;
+    data_println("Debug Mode");
     return true;
 }
 
@@ -107,10 +110,10 @@ Command commands[] = {
 char input[1024];
 char* last_input_char = input;
 
-#if defined(USE_BT)
+#if defined(USE_BT) || defined(USE_SERIAL)
 bool check_serial() {
-	while (last_input_char < &input[sizeof(input)] && BT.available()) { // if still in buffer limits 
-		int new_char = BT.read(); // read a single character
+	while (last_input_char < &input[sizeof(input)] && data_available()) { // if still in buffer limits 
+		int new_char = data_read(); // read a single character
 		if (new_char < 0) break; // if timeout (for some reason? even though serial.available was true)
 		*last_input_char = (char)new_char; // write new char to next place in input buffer
 		if ((char)new_char == '\n') break; // break when at end of line 
@@ -219,7 +222,7 @@ char* build_teleplot(char* buffer) {
 #ifdef USE_SD
 void SD_init() {
     if (!SD.begin()) {
-        BT.println("SD Card failed to initialize, or not present");
+        data_println("SD Card failed to initialize, or not present");
         return;
     }
     char filename[16] = "/D0.csv";
@@ -230,7 +233,7 @@ void SD_init() {
     }
     logFile = SD.open(filename, FILE_WRITE);
     if (!logFile) {
-        BT.println("Failed to open log.csv");
+        data_println("Failed to open log.csv");
         return;
     }
 }
@@ -250,9 +253,9 @@ void log_CSV() {
 }
 #endif // USE_SD
 
-#ifdef USE_BT
+#if defined(USE_BT) || defined(USE_SERIAL)
 void log_teleplot() {
     build_teleplot(teleplot_buffer);
-    BT.println(teleplot_buffer);
+    data_println(teleplot_buffer);
 }
 #endif // USE_SERIAL

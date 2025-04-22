@@ -17,7 +17,7 @@
                "formula": "",
                "options": {
                   "_serie": "Engine RPM",
-                  "_id": "data-serie-86",
+                  "_id": "data-serie-81",
                   "stroke": "rgba(231,76,60,1)",
                   "fill": "rgba(231,76,60,0.1)"
                },
@@ -31,7 +31,7 @@
                "formula": "",
                "options": {
                   "_serie": "Secondary RPM",
-                  "_id": "data-serie-87",
+                  "_id": "data-serie-82",
                   "stroke": "rgba(52,152,219,1)",
                   "fill": "rgba(52,152,219,0.1)"
                },
@@ -45,7 +45,7 @@
                "formula": "",
                "options": {
                   "_serie": "Engine RPM Target",
-                  "_id": "data-serie-94",
+                  "_id": "data-serie-83",
                   "stroke": "rgba(46,204,113,1)",
                   "fill": "rgba(46,204,113,0.1)"
                },
@@ -70,7 +70,7 @@
                "formula": "",
                "options": {
                   "_serie": "Target Ratio",
-                  "_id": "data-serie-88",
+                  "_id": "data-serie-84",
                   "stroke": "rgba(231,76,60,1)",
                   "fill": "rgba(231,76,60,0.1)"
                },
@@ -84,7 +84,7 @@
                "formula": "",
                "options": {
                   "_serie": "Measured Ratio",
-                  "_id": "data-serie-89",
+                  "_id": "data-serie-85",
                   "stroke": "rgba(52,152,219,1)",
                   "fill": "rgba(52,152,219,0.1)"
                },
@@ -109,7 +109,7 @@
                "formula": "",
                "options": {
                   "_serie": "Error Integral",
-                  "_id": "data-serie-90",
+                  "_id": "data-serie-86",
                   "stroke": "rgba(231,76,60,1)",
                   "fill": "rgba(231,76,60,0.1)"
                },
@@ -123,7 +123,7 @@
                "formula": "",
                "options": {
                   "_serie": "Error Derivative",
-                  "_id": "data-serie-91",
+                  "_id": "data-serie-87",
                   "stroke": "rgba(52,152,219,1)",
                   "fill": "rgba(52,152,219,0.1)"
                },
@@ -137,7 +137,7 @@
                "formula": "",
                "options": {
                   "_serie": "Error",
-                  "_id": "data-serie-92",
+                  "_id": "data-serie-88",
                   "stroke": "rgba(46,204,113,1)",
                   "fill": "rgba(46,204,113,0.1)"
                },
@@ -162,9 +162,23 @@
                "formula": "",
                "options": {
                   "_serie": "Stepper Position",
-                  "_id": "data-serie-93",
+                  "_id": "data-serie-89",
                   "stroke": "rgba(231,76,60,1)",
                   "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "Feed Forward Position",
+               "sourceNames": [
+                  "Feed Forward Position"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "Feed Forward Position",
+                  "_id": "data-serie-90",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
                },
                "type": "number"
             }
