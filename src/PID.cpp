@@ -5,9 +5,16 @@
 
 const float e_rpm_const = 60000000.0 / ENGINE_NUM_MAGS; // 60s/min * 1000ms/s / num_mags
 const float s_rpm_const = 60000000.0 / SECONDARY_NUM_MAGS;
-
-const float model_r[] = {0.900000,1.150000,1.400000,1.650000,1.900000,2.150000,2.400000,2.650000,2.900000,3.150000,3.400000,3.650000,3.900000};
-const float model_P[] = {0.906800,0.739412,0.603112,0.491077,0.397937,0.319600,0.252978,0.195733,0.146079,0.102643,0.064352,0.030362,0.000000};
+// measurements from run: engage_pos = 0.535
+// R3.5: 0.52in
+// R3.0: 0.6in
+// R2.5: 0.68in
+// R2.0: 0.78in
+// R1.5: 0.98in
+// Offset from 0:
+// R3.5: 
+const float model_r[] = {1.5, 2.0, 2.5, 3.0, 3.5};
+const float model_P[] = {0.445, 0.245, 0.145, 0.065, 0};
 const unsigned int model_size = sizeof(model_r) / sizeof(model_r[0]);
 
 float error = 0.0;
@@ -117,11 +124,11 @@ void updatePID() {
     error_integ += error * dt;
     max_error_integ = abs(max_pos_inch/Ki)/8;
     error_integ = symminmax(error_integ, max_error_integ);
-    ff_pos = interpolate(r_t, model_r, model_P, model_size);
+    ff_pos = engage_pos + interpolate(r_t, model_r, model_P, model_size);
     
     if (current_mode == RPM || current_mode == MANUAL) {
         if (e_rpm_m > 1000) target_pos_inch = engage_pos - 0.050; // Sets a floor at engagement position to prevent rattling of yoke
-        target_pos_inch = engage_pos + ff_pos + Kp * error + Ki * error_integ + Kd * error_deriv;
+        target_pos_inch = ff_pos + Kp * error + Ki * error_integ + Kd * error_deriv;
 
     }
 

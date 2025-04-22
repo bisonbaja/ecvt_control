@@ -34,7 +34,7 @@ void setup() {
     xTaskCreatePinnedToCore(SD_task, "SD Card Log", 8000, NULL, SD_TASK_PRIORITY, NULL, 1);
     #endif // USE_SD
     
-    #ifdef USE_BT
+    #if defined(USE_BT) || defined(USE_SERIAL)
     xTaskCreatePinnedToCore(log_task, "Serial Logging", 8000, NULL, LOG_TASK_PRIORITY, NULL, 1);
     xTaskCreatePinnedToCore(serial_command_task, "Read Serial and execute commands", 2000, NULL, COMMAND_TASK_PRIORITY, NULL, 1);
     #endif

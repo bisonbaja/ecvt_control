@@ -8,9 +8,9 @@
 
 //#define USE_MPU
 #define USE_SERIAL // currently set up for debug
-#define USE_BT // currently used for data
+//#define USE_BT // currently used for data
 //#define USE_SD 
-#define SERIAL_BAUDRATE 115200
+#define SERIAL_BAUDRATE 576000
 #define BT_NAME "ESP32_CVT"
 
 // PIN DEFINITIONS
@@ -52,7 +52,7 @@ MISO: 19
 
 // Task Delays in ms
 #define PID_TASK_DELAY 1
-#define LOG_TASK_DELAY 25
+#define LOG_TASK_DELAY 30
 #define SD_TASK_DELAY 10
 #define SERIAL_COMMAND_DELAY 250
 #define STEP_DELAY_US 50
@@ -61,9 +61,9 @@ MISO: 19
 #define STEPPER_MAX_ACCEL 3200
 #define STEPPER_MAX_SPEED 1600
 #define STEPS_PER_INCH 1600 // 200 steps/rev * 4 rev/in * 2 in/in leverage
-#define MAX_POS_INCH 0.950
-#define IDLE_POS 0.15
-#define ENGAGE_POS 0.35
+#define MAX_POS_INCH 1.205
+#define IDLE_POS 0.335
+#define ENGAGE_POS 0.535
 
 /* END CONFIGURATION */
 
@@ -71,6 +71,27 @@ MISO: 19
 #include <BluetoothSerial.h>
 extern BluetoothSerial BT;
 #endif // USE_BT
+
+#if !defined(USE_BT) && defined(USE_SERIAL)
+#define data_print(x) Serial.print(x)
+#define data_println(x) Serial.println(x)
+#define data_read(x) Serial.read(x)
+#define data_available(x) Serial.available(x)
+#endif
+
+#if defined(USE_BT) && !defined(USE_SERIAL)
+#define data_print(x) BT.print(x)
+#define data_println(x) BT.println(x)
+#define data_read(x) BT.read(x)
+#define data_available(x) BT.available(x)
+#endif
+
+#if !defined(USE_BT) && !defined(USE_SERIAL)
+#define data_print(x) 
+#define data_println(x) 
+#define data_read(x) 
+#define data_available(x) 
+#endif
 
 #ifdef USE_SD
 #include <SD.h>
