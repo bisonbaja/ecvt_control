@@ -25,8 +25,11 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(ENGINE_TACH_PIN), e_isr, RISING);
     attachInterrupt(digitalPinToInterrupt(SECONDARY_TACH_PIN), s_isr, RISING);
 
+    #ifdef USE_STEPPER
     // Initialize stepper for accel control
     stepper_setup();
+    #endif // USE_STEPPER
+
     xTaskCreatePinnedToCore(updatePID_task, "PID Update Loop", 8000, NULL, PID_TASK_PRIORITY, NULL, 1);
 
     #ifdef USE_SD

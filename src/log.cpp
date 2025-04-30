@@ -17,7 +17,13 @@ Param params[] = {
     {"rt", &r_t},
     {"pt", &target_pos_inch},
     {"engage", &engage_pos}, 
-    {"maxderiv", &max_error_deriv}
+    {"maxderiv", &max_error_deriv},
+    {"r1", &manual_ratios[0]},
+    {"r2", &manual_ratios[1]},
+    {"r3", &manual_ratios[2]},
+    {"r4", &manual_ratios[3]},
+    {"r5", &manual_ratios[4]},
+    {"r6", &manual_ratios[5]},
 };
 
 bool set(char* token) {
@@ -73,19 +79,19 @@ bool go(char* token) {
 }
 
 bool manual_mode(char* rest) {
-    current_mode = MANUAL;
+    current_mode = RATIO;
     data_println("Manual Mode");
     return true;
 }
 
-bool normal_mode(char * rest) {
+bool normal_mode(char* rest) {
     current_mode = RPM;
     data_println("RPM (Normal) Mode");
     return true;
 }
 
-bool debug_mode(char * rest) {
-    current_mode = DEBUG;
+bool debug_mode(char* rest) {
+    current_mode = POSITION;
     data_println("Debug Mode");
     return true;
 }
@@ -102,8 +108,8 @@ Command commands[] = {
     {"seteng", set_engage},
     {"getpos", print_pos},
     {"go", go},
-    {"normal", normal_mode},
-    {"debug", debug_mode},
+    {"rpm", normal_mode},
+    {"position", debug_mode},
     {"manual", manual_mode}
 };
 
@@ -173,19 +179,19 @@ struct Datapoint {
 };
 
 Datapoint datapoints[] = {
-    {"Error", &error, "%.2f", true, true},
-    {"Error Integral", &error_integ, "%.2f", true, true},
-    {"Error Derivative", &error_deriv, "%.2f", true, true},
-    {"Feed Forward Position", &ff_pos, "%.2f", true, true},
-    {"Engine RPM Target", &e_rpm_t, "%.0f", true, true},
+    {"Error", &error, "%.2f", false, false},
+    {"Error Integral", &error_integ, "%.2f", false, false},
+    {"Error Derivative", &error_deriv, "%.2f", false, false},
+    {"Feed Forward Position", &ff_pos, "%.2f", false, false},
+    {"Engine RPM Target", &e_rpm_t, "%.0f", false, false},
     {"Engine RPM", &e_rpm_m, "%.0f", true, true},
     {"Secondary RPM", &s_rpm_m, "%.0f", true, true},
-    {"Target Ratio", &r_t, "%.2f", true, true},
+    {"Target Ratio", &r_t, "%.2f", false, false},
     {"Measured Ratio", &r_m, "%.2f", true, true},
-    {"Stepper Position", &target_pos_inch, "%.2f", true, true},
-    {"Kp", &Kp, "%.2f", true, true},
-    {"Ki", &Ki, "%.2f", true, true},
-    {"Kd", &Kd, "%.2f", true, true},
+    {"Stepper Position", &target_pos_inch, "%.2f", false, false},
+    {"Kp", &Kp, "%.2f", false, false},
+    {"Ki", &Ki, "%.2f", false, false},
+    {"Kd", &Kd, "%.2f", false, false},
 };
 
 // Builds one line of CSV and returns the next character to write to
@@ -236,6 +242,16 @@ void SD_init() {
         data_println("Failed to open log.csv");
         return;
     }
+
+    const int count = sizeof(datapoints) / sizeof(datapoints[0]);
+    for (int i = 0; i < count; i += 1) {
+        Datapoint* datapoint = &datapoints[i];
+        if (datapoint->displayInCSV) {
+            logFile.print(datapoint->name);
+            logFile.print(',');
+        }
+    }
+    logFile.print('\n');
 }
 
 unsigned long lines_written  = 0;

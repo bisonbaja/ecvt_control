@@ -7,27 +7,19 @@ void updatePID();
 void e_isr();
 void s_isr();
 void stepper_setup();
-extern float Kp;
-extern float Ki;
-extern float Kd;
-extern float e_rpm_m;
-extern float s_rpm_m;
-extern float r_m;
-extern float r_t;
-extern float error;
-extern float error_integ;
-extern float error_deriv;
-extern float e_rpm_t;
-extern float target_pos_inch;
-extern float max_error_deriv;
-extern float engage_pos;
-extern float max_pos_inch;
-extern float ff_pos;
+
+extern float Kp, Ki, Kd, e_rpm_m, s_rpm_m, r_m, r_t, error, error_integ, 
+             error_deriv, e_rpm_t, target_pos_inch, max_error_deriv, 
+             engage_pos, max_pos_inch, ff_pos;
+
+extern float manual_ratios[];
+extern const unsigned int num_ratios;
+extern unsigned int current_ratio;
 
 enum runMode {
-    DEBUG,
+    POSITION,
+    RATIO,
     RPM,
-    MANUAL
 };
 
 extern runMode current_mode;
